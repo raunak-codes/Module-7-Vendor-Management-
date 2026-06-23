@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Button } from 'antd';
 import { FilterOutlined, SortAscendingOutlined } from '@ant-design/icons';
 
@@ -11,13 +11,13 @@ export default function WorkOrders() {
 
   const fetchWorkOrders = async () => {
     try {
-      const token = localStorage.getItem('vendorToken');
+      const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/v1/work-orders', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const { data } = await res.json();
-        setWorkOrders(data);
+        setWorkOrders(data?.items ?? data ?? []);
       }
     } catch (error) {
       console.error(error);
@@ -27,9 +27,9 @@ export default function WorkOrders() {
   const handleUpdateStatus = async (id, status, e) => {
     if(e) e.stopPropagation();
     try {
-      const token = localStorage.getItem('vendorToken');
+      const token = localStorage.getItem('token');
       const res = await fetch(`http://localhost:5000/api/v1/work-orders/${id}/status`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}` 
@@ -228,3 +228,4 @@ export default function WorkOrders() {
     </div>
   );
 }
+

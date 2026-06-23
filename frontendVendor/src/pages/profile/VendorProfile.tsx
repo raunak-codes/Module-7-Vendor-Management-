@@ -11,7 +11,7 @@ export default function VendorProfile() {
 
   const fetchProfile = async () => {
     try {
-      const token = localStorage.getItem('vendorToken');
+      const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/v1/vendors/me', {
         headers: { Authorization: `Bearer ${token}` }
       });

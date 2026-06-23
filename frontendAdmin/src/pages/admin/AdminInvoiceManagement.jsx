@@ -36,7 +36,7 @@ const AdminInvoiceManagement = () => {
       });
       if (!res.ok) throw new Error("Failed to fetch invoices");
       const { data } = await res.json();
-      setInvoices(data);
+      setInvoices(data.items ?? data ?? []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -48,10 +48,10 @@ const AdminInvoiceManagement = () => {
     try {
       const token = localStorage.getItem("adminToken");
       const res = await fetch(`http://localhost:5000/api/v1/invoices/${selected.id}/status`, {
-        method: 'PUT',
-        headers: { 
+        method: 'PATCH',
+        headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ status: newStatus })
       });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -45,8 +45,13 @@ export default function Login() {
       const resData = await response.json();
       if (!response.ok) throw new Error(resData.message || 'Login failed');
       
-      localStorage.setItem('token', resData.token);
-      localStorage.setItem('vendorStatus', resData.user?.status || 'UNKNOWN');
+      const { token, user } = resData.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('userEmail', user.email);
+      localStorage.setItem('userRole', user.role);
+      localStorage.setItem('vendorId', user.vendorId ?? '');
+      localStorage.setItem('vendorStatus', user.vendorStatus ?? user.status ?? 'PENDING');
+      
       message.success('Login successful!');
       navigate('/dashboard');
     } catch (error: any) {
@@ -113,13 +118,13 @@ export default function Login() {
                 "The most seamless platform for elite vendor management I've used in a decade."
               </p>
               <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6 }}>
-                — Julian V., Director of Operations
+                â€” Julian V., Director of Operations
               </p>
             </div>
           </div>
         </div>
 
-        {/* Right — Auth Card */}
+        {/* Right â€” Auth Card */}
         <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 8px 40px rgba(0,0,0,0.08)', border: '1px solid #f0f0f0', overflow: 'hidden' }}>
           {/* Tabs */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid #f0f0f0' }}>
@@ -160,7 +165,7 @@ export default function Login() {
                   </div>
                   <div style={{ position: 'relative' }}>
                     <span className="material-symbols-outlined" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 20 }}>lock</span>
-                    <input {...register('password')} type={showPassword ? 'text' : 'password'} placeholder="••••••••" style={{ ...inputStyle, paddingRight: 48 }}
+                    <input {...register('password')} type={showPassword ? 'text' : 'password'} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" style={{ ...inputStyle, paddingRight: 48 }}
                       onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(133,18,23,0.08)'; }}
                       onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
                     />
@@ -199,19 +204,19 @@ export default function Login() {
       </main>
 
       <footer style={{ padding: '24px 48px', textAlign: 'center' }}>
-        <p style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>© 2024 EventHub360 Global Solutions. All Rights Reserved.</p>
+        <p style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>Â© 2024 EventHub360 Global Solutions. All Rights Reserved.</p>
       </footer>
     </div>
   );
 }
 
-// ── Multi-step Register Form ────────────────────────────────────────────────
+// â”€â”€ Multi-step Register Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const registerSchema = z.object({
   businessName: z.string().min(2, 'Required'),
   contactName: z.string().min(2, 'Required'),
   email: z.string().email('Valid email required'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   phone: z.string().min(10, 'Valid phone required'),
   address: z.string().min(5, 'Required'),
   vendorCategory: z.string().min(1, 'Select a category'),
@@ -273,8 +278,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
           services: data.services,
           gstNumber: data.gstNumber,
           panNumber: data.panNumber,
-          bankName: data.bankName,
-          accountNumber: data.accountNumber
+          bankAccountNumber: data.accountNumber
         })
       });
       const resData = await response.json();
@@ -282,8 +286,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
       
       onSuccess();
     } catch (error: any) {
-      // Assuming message is imported from antd somewhere
-      alert(error.message || 'An error occurred during registration');
+      message.error(error.message || 'An error occurred during registration');
     } finally {
       setLoading(false);
     }
@@ -358,7 +361,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
               <label style={labelStyle}>Password</label>
               <div style={{ position: 'relative' }}>
                 <span className="material-symbols-outlined" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 20 }}>lock</span>
-                <input {...register('password')} type={showRegPassword ? 'text' : 'password'} placeholder="••••••••" style={{ ...inputStyle, paddingRight: 48 }}
+                <input {...register('password')} type={showRegPassword ? 'text' : 'password'} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" style={{ ...inputStyle, paddingRight: 48 }}
                   onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; }}
                   onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; }}
                 />
@@ -462,7 +465,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
             <div style={{ padding: 24, border: '2px dashed #d1d5db', borderRadius: 10, textAlign: 'center', background: '#fafafa' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#9ca3af', display: 'block', marginBottom: 8 }}>upload_file</span>
               <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Upload KYC Documents</p>
-              <p style={{ fontSize: 12, color: '#9ca3af' }}>GST Certificate, PAN Card, Bank Passbook — PDF or JPG</p>
+              <p style={{ fontSize: 12, color: '#9ca3af' }}>GST Certificate, PAN Card, Bank Passbook â€” PDF or JPG</p>
             </div>
           </div>
         )}
@@ -481,7 +484,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
               flex: 1, padding: '14px', borderRadius: 8,
               border: 'none', background: 'var(--primary)',
               color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer',
-            }}>Continue →</button>
+            }}>Continue â†’</button>
           ) : (
             <Button type="primary" htmlType="submit" loading={loading} style={{
               flex: 1, height: 50, borderRadius: 8,
@@ -494,3 +497,4 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
     </div>
   );
 }
+

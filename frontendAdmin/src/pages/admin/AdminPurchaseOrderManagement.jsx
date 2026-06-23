@@ -30,7 +30,7 @@ const AdminPurchaseOrderManagement = () => {
         if (!res.ok) throw new Error("Failed to fetch purchase orders");
         return res.json();
       })
-      .then(data => setOrders(data.data || []))
+      .then(data => setOrders(data.data?.items ?? data.data ?? []))
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);

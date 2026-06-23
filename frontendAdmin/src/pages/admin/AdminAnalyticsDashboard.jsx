@@ -62,7 +62,7 @@ export default function AdminAnalyticsDashboard() {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch('http://localhost:5000/api/v1/admin/analytics', {
+      const res = await fetch('http://localhost:5000/api/v1/vendors/admin/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {

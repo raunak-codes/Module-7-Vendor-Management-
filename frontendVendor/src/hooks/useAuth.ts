@@ -1,28 +1,22 @@
-import { useState } from 'react';
-
-interface AuthUser {
-  name: string;
-  email: string;
-  company: string;
-  role: string;
-}
-
 export function useAuth() {
-  const [user] = useState<AuthUser>({
-    name: 'Luxe Events Co.',
-    email: 'vendor@eventhub360.com',
-    company: 'Elite Catering & Event Design',
-    role: 'Premium Vendor',
-  });
+  const token = localStorage.getItem('token');
+  const user = {
+    name: localStorage.getItem('userName') ?? 'Vendor',
+    email: localStorage.getItem('userEmail') ?? '',
+    company: localStorage.getItem('businessName') ?? '',
+    role: localStorage.getItem('userRole') ?? 'VENDOR',
+    vendorId: localStorage.getItem('vendorId') ?? '',
+    vendorStatus: localStorage.getItem('vendorStatus') ?? '',
+  };
 
-  const isAuthenticated = !!localStorage.getItem('token');
+  const isAuthenticated = !!token;
 
   const login = (token: string) => {
     localStorage.setItem('token', token);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    localStorage.clear();
   };
 
   return { user, isAuthenticated, login, logout };

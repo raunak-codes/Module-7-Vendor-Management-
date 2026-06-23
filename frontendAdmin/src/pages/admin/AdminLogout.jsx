@@ -27,9 +27,16 @@ export default function AdminLogout() {
     navigate(-1);
   };
 
-  const handleLogout = () => {
-    // TODO: clear real auth/session state here once auth is wired up.
-    navigate("/admin/login");
+  const handleLogout = async () => {
+    const token = localStorage.getItem('adminToken');
+    try {
+      await fetch('http://localhost:5000/api/v1/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch (_) {}
+    localStorage.removeItem('adminToken');
+    navigate('/admin/login');
   };
 
   return (

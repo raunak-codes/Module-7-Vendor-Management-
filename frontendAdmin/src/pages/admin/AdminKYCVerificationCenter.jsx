@@ -30,18 +30,22 @@ const AdminKYCVerificationCenter = () => {
     }
 
     const token = localStorage.getItem("adminToken");
-    fetch(`http://localhost:5000/api/v1/admin/vendors/${vendorId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
+    Promise.all([
+      fetch(`http://localhost:5000/api/v1/vendors/${vendorId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then((res) => {
         if (!res.ok) throw new Error("Failed to fetch vendor data");
         return res.json();
-      })
-      .then((data) => {
-        setVendor(data.data);
-        if (data.data.kycDocuments && data.data.kycDocuments.length > 0) {
-           setActiveTab(data.data.kycDocuments[0].id);
-        }
+      }),
+      fetch(`http://localhost:5000/api/v1/vendors/${vendorId}/kyc`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then((res) => res.ok ? res.json() : { data: [] }),
+    ])
+      .then(([vendorData, kycData]) => {
+        const kycDocs = kycData.data ?? [];
+        const vendor = { ...vendorData.data, kycDocuments: kycDocs };
+        setVendor(vendor);
+        if (kycDocs.length > 0) setActiveTab(kycDocs[0].id);
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -51,8 +55,8 @@ const AdminKYCVerificationCenter = () => {
     try {
       const token = localStorage.getItem("adminToken");
       const endpoint = status === 'approved' ? 'approve' : 'reject';
-      const res = await fetch(`http://localhost:5000/api/v1/admin/vendors/${vendorId}/${endpoint}`, {
-        method: 'PUT',
+      const res = await fetch(`http://localhost:5000/api/v1/vendors/${vendorId}/${endpoint}`, {
+        method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error(`Failed to ${status} vendor`);
@@ -105,10 +109,10 @@ const AdminKYCVerificationCenter = () => {
 
           <div className="admin-kyc__doc-preview" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
             {activeDoc ? (
-               activeDoc.fileUrl.endsWith('.pdf') ? (
-                  <iframe src={`http://localhost:5000/${activeDoc.fileUrl}`} width="100%" height="500px" title={activeDoc.documentType} />
+               activeDoc.documentUrl?.endsWith('.pdf') ? (
+                  <iframe src={activeDoc.downloadUrl} width="100%" height="500px" title={activeDoc.documentType} />
                ) : (
-                  <img src={`http://localhost:5000/${activeDoc.fileUrl}`} alt={activeDoc.documentType} style={{ maxWidth: '100%', maxHeight: 500, objectFit: 'contain' }} />
+                  <img src={activeDoc.downloadUrl} alt={activeDoc.documentType} style={{ maxWidth: '100%', maxHeight: 500, objectFit: 'contain' }} />
                )
             ) : (
                <p style={{ color: '#6b7280' }}>Select a document to preview.</p>

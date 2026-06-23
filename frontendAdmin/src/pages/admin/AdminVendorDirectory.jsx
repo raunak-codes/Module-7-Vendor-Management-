@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/PageHeader";
 import AdminLayout from "../../layouts/AdminLayout";
 import StatCard from "../../components/StatCard";
@@ -18,22 +18,23 @@ const STATUSES = ["All Statuses", "PENDING", "ACTIVE", "REJECTED", "INACTIVE"];
 
 const AdminVendorDirectory = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [vendors, setVendors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [status, setStatus] = useState("All Statuses");
+  const [status, setStatus] = useState(searchParams.get("status") || "All Statuses");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
-    fetch("http://localhost:5000/api/v1/admin/vendors", {
+    fetch("http://localhost:5000/api/v1/vendors", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch vendors");
         return res.json();
       })
-      .then((data) => setVendors(data.data || []))
+      .then((data) => setVendors(data.data?.items ?? data.data ?? []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);

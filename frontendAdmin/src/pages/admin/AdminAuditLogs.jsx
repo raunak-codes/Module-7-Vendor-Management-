@@ -23,25 +23,28 @@ const columns = [
   },
   {
     key: "admin",
-    header: "Admin/User",
+    header: "User",
     render: (r) => (
       <div className="admin-audit__admin">
-        <span className="admin-audit__avatar">{(r.user?.name || '?').substring(0,2).toUpperCase()}</span>
+        <span className="admin-audit__avatar">{(r.user?.email || '?').substring(0,2).toUpperCase()}</span>
         <div>
-          <p className="admin-audit__admin-name">{r.user?.name || 'System'}</p>
+          <p className="admin-audit__admin-name">{r.user?.email || 'System'}</p>
           <p className="admin-audit__admin-role">{r.user?.role || 'SYSTEM'}</p>
         </div>
       </div>
     ),
   },
-  { key: "action", header: "Action Description" },
+  { key: "action", header: "Action" },
   {
-    key: "target",
-    header: "Target Entity ID",
-    render: (r) => <strong className="admin-audit__target">{r.targetId || 'N/A'}</strong>,
+    key: "entity",
+    header: "Entity",
+    render: (r) => <span className="admin-audit__target">{r.entity}</span>,
   },
-  { key: "ip", header: "IP Address", render: (r) => <span className="admin-audit__ip">{r.ipAddress || 'Internal'}</span> },
-  { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status || 'success'} label={r.status || 'SUCCESS'} /> },
+  {
+    key: "entityId",
+    header: "Entity ID",
+    render: (r) => <strong className="admin-audit__target">{r.entityId?.slice(0, 8) || 'N/A'}...</strong>,
+  },
 ];
 
 export default function AdminAuditLogs() {
@@ -60,7 +63,7 @@ export default function AdminAuditLogs() {
       });
       if (res.ok) {
         const { data } = await res.json();
-        setLogs(data);
+        setLogs(data.items ?? data ?? []);
       }
     } catch (error) {
       console.error(error);

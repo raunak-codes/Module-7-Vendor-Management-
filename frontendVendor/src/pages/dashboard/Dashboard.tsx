@@ -29,7 +29,7 @@ export default function Dashboard() {
 
   const fetchDashboard = async () => {
     try {
-      const token = localStorage.getItem('vendorToken');
+      const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/v1/vendors/me/dashboard', {
         headers: { Authorization: `Bearer ${token}` }
       });

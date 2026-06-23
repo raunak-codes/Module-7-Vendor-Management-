@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
 const REQUIRED_DOCS = [
-  { id: 'gst', label: 'GST Certificate', type: 'GST' },
+  { id: 'gst', label: 'GST Certificate', type: 'GST_CERTIFICATE' },
   { id: 'pan', label: 'PAN Card', type: 'PAN' },
-  { id: 'business', label: 'Business Registration', type: 'BUSINESS_REGISTRATION' },
-  { id: 'bank', label: 'Bank Proof (Cancelled Cheque / Statement)', type: 'BANK_PROOF' },
+  { id: 'business', label: 'Business Registration', type: 'INCORPORATION_CERTIFICATE' },
+  { id: 'bank', label: 'Bank Proof (Cancelled Cheque / Statement)', type: 'CANCELLED_CHEQUE' },
 ];
 
 export default function KYCUpload({ onComplete }: { onComplete: () => void }) {

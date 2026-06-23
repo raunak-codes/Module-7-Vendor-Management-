@@ -68,7 +68,7 @@ export default function AdminPaymentManagement() {
       });
       if (res.ok) {
         const { data } = await res.json();
-        setTransactions(data);
+        setTransactions(data?.items ?? data ?? []);
       }
     } catch (error) {
       console.error(error);

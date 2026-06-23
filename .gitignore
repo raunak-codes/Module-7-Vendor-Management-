@@ -25,3 +25,10 @@
 *.njsproj
 *.sln
 *.sw?
+
+# Custom exclusions requested by user
+.claude/
+backend.rr
+backend.err
+backend.log
+

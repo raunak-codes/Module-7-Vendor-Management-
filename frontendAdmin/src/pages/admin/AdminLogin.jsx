@@ -38,11 +38,11 @@ const AdminLogin = () => {
         throw new Error(data.message || "Login failed");
       }
 
-      if (data.user?.role !== "ADMIN") {
+      if (data.data?.user?.role !== "ADMIN") {
         throw new Error("Unauthorized access. Admin privileges required.");
       }
 
-      localStorage.setItem("adminToken", data.token);
+      localStorage.setItem("adminToken", data.data.token);
       navigate("/admin/dashboard");
     } catch (err) {
       setError(err.message);

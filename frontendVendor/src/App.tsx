@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import MainLayout from './components/layout/MainLayout';
-import Landing from './pages/landing/Landing';
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
 import PurchaseOrders from './pages/purchase-orders/PurchaseOrders';
@@ -79,7 +78,6 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* Public routes */}
-        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
 
         {/* Protected routes under main layout */}
@@ -91,6 +89,7 @@ export default function App() {
             </ProtectedRoute>
           }
         >
+          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
 
           {/* Operations */}

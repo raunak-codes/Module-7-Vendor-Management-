@@ -22,7 +22,7 @@ const AdminVendorProfile = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
-    fetch(`http://localhost:5000/api/v1/admin/vendors/${vendorId}`, {
+    fetch(`http://localhost:5000/api/v1/vendors/${vendorId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
@@ -38,8 +38,8 @@ const AdminVendorProfile = () => {
     try {
       const token = localStorage.getItem("adminToken");
       const endpoint = newStatus === 'ACTIVE' ? 'approve' : 'reject';
-      const res = await fetch(`http://localhost:5000/api/v1/admin/vendors/${vendorId}/${endpoint}`, {
-        method: 'PUT',
+      const res = await fetch(`http://localhost:5000/api/v1/vendors/${vendorId}/${endpoint}`, {
+        method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!res.ok) throw new Error(`Failed to ${endpoint} vendor`);

@@ -263,6 +263,7 @@ model VendorInvoice {
   currency        String            @default("INR")
   dueDate         DateTime?
   paymentDate     DateTime?
+  documentUrl     String?
 
   isDeleted       Boolean           @default(false)
   deletedAt       DateTime?

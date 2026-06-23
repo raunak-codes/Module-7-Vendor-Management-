@@ -80,7 +80,7 @@ export default function AdminNotificationCenter() {
       });
       if (res.ok) {
         const { data } = await res.json();
-        setNotifications(data);
+        setNotifications(data.notifications ?? data.items ?? data ?? []);
       }
     } catch (error) {
       console.error(error);
@@ -95,7 +95,7 @@ export default function AdminNotificationCenter() {
     try {
       const token = localStorage.getItem('adminToken');
       const res = await fetch(`http://localhost:5000/api/v1/notifications/${item.id}/read`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -106,8 +106,9 @@ export default function AdminNotificationCenter() {
     }
   };
 
-  const activeItems = notifications.filter(n => !archivedIds.has(n.id));
-  const archivedItems = notifications.filter(n => archivedIds.has(n.id));
+  const notifArray = Array.isArray(notifications) ? notifications : (notifications?.items ?? []);
+  const activeItems = notifArray.filter(n => !archivedIds.has(n.id));
+  const archivedItems = notifArray.filter(n => archivedIds.has(n.id));
 
   return (
     <AdminLayout searchPlaceholder="Search notifications...">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from 'antd';
 import { FilterOutlined, PlusOutlined } from '@ant-design/icons';
@@ -37,13 +37,13 @@ export default function PurchaseOrders() {
 
   const fetchOrders = async () => {
     try {
-      const token = localStorage.getItem('vendorToken');
+      const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/v1/purchase-orders', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const { data } = await res.json();
-        setOrders(data);
+        setOrders(data?.items ?? data ?? []);
       }
     } catch (error) {
       console.error(error);
@@ -53,9 +53,9 @@ export default function PurchaseOrders() {
   const handleUpdateStatus = async (id, status, e) => {
     e.stopPropagation();
     try {
-      const token = localStorage.getItem('vendorToken');
+      const token = localStorage.getItem('token');
       const res = await fetch(`http://localhost:5000/api/v1/purchase-orders/${id}/status`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}` 
@@ -241,3 +241,4 @@ export default function PurchaseOrders() {
     </div>
   );
 }
+

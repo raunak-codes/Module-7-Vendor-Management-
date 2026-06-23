@@ -20,7 +20,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
-    fetch("http://localhost:5000/api/v1/admin/vendors", {
+    fetch("http://localhost:5000/api/v1/vendors", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {

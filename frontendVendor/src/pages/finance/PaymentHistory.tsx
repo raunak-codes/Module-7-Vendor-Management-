@@ -34,13 +34,13 @@ export default function PaymentHistory() {
 
   const fetchInvoices = async () => {
     try {
-      const token = localStorage.getItem('vendorToken');
+      const token = localStorage.getItem('token');
       const res = await fetch('http://localhost:5000/api/v1/invoices', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const { data } = await res.json();
-        setInvoices(data);
+        setInvoices(data?.items ?? data ?? []);
       }
     } catch (error) {
       console.error(error);
