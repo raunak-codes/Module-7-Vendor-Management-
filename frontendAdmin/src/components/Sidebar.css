@@ -1,0 +1,104 @@
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  left: 0;
+  background-color: var(--color-background);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-stack-lg) var(--space-stack-md);
+  border-right: 1px solid var(--color-surface-container);
+  overflow-y: auto;
+  z-index: 100;
+}
+
+/* Brand */
+.sidebar__brand {
+  margin-bottom: var(--space-stack-lg);
+  padding: 0 8px;
+}
+
+.sidebar__brand-name {
+  font-family: var(--font-display);
+  color: var(--color-primary);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.sidebar__brand-tagline {
+  color: var(--color-secondary);
+  margin-top: 4px;
+}
+
+/* Navigation */
+.sidebar__nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar__nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius-default);
+  color: var(--color-on-surface-variant);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  font-size: 14px;
+  line-height: 20px;
+  position: relative;
+  border-right: 4px solid transparent;
+}
+
+.sidebar__nav-item:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-secondary);
+}
+
+.sidebar__nav-item--active {
+  background-color: rgba(181, 27, 30, 0.05);
+  color: var(--color-secondary);
+  font-weight: 600;
+  border-right: 4px solid var(--color-secondary);
+}
+
+.sidebar__nav-icon {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+/* Footer - logout only */
+.sidebar__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: var(--space-stack-md);
+  border-top: 1px solid var(--color-surface-container-high);
+  margin-top: auto;
+}
+
+.sidebar__footer-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-radius: var(--radius-default);
+  color: var(--color-on-surface-variant);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  font-size: 14px;
+  border-right: 4px solid transparent;
+}
+
+.sidebar__footer-link:hover {
+  background-color: var(--color-surface-container);
+  color: var(--color-secondary);
+}
+
+.sidebar__footer-link--logout:hover {
+  color: var(--color-error);
+}

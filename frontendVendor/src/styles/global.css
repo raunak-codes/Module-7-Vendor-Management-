@@ -1,0 +1,236 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;600;700;800&display=swap');
+
+:root {
+  --primary: #851217;
+  --primary-container: #a62c2b;
+  --primary-fixed: #ffdad7;
+  --primary-fixed-dim: #ffb3ad;
+  --on-primary: #ffffff;
+  --on-primary-fixed: #410004;
+  --on-primary-fixed-variant: #8b181b;
+  --on-primary-container: #ffc2bd;
+
+  --secondary: #555f6d;
+  --secondary-container: #d6e0f1;
+  --secondary-fixed: #d9e3f4;
+  --secondary-fixed-dim: #bdc7d8;
+  --on-secondary: #ffffff;
+  --on-secondary-container: #596372;
+  --on-secondary-fixed: #121c28;
+  --on-secondary-fixed-variant: #3e4755;
+
+  --tertiary: #004d33;
+  --tertiary-container: #006746;
+  --tertiary-fixed: #6ffbbe;
+  --tertiary-fixed-dim: #4edea3;
+  --on-tertiary: #ffffff;
+  --on-tertiary-container: #5beaad;
+  --on-tertiary-fixed: #002113;
+  --on-tertiary-fixed-variant: #005236;
+
+  --background: #f8f9fa;
+  --surface: #f8f9fa;
+  --surface-bright: #f8f9fa;
+  --surface-dim: #d9dadb;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f3f4f5;
+  --surface-container: #edeeef;
+  --surface-container-high: #e7e8e9;
+  --surface-container-highest: #e1e3e4;
+  --surface-variant: #e1e3e4;
+  --surface-tint: #ad312f;
+
+  --on-background: #191c1d;
+  --on-surface: #191c1d;
+  --on-surface-variant: #58413f;
+
+  --outline: #8c716e;
+  --outline-variant: #e0bfbc;
+
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+  --on-error: #ffffff;
+  --on-error-container: #93000a;
+
+  --inverse-surface: #2e3132;
+  --inverse-on-surface: #f0f1f2;
+  --inverse-primary: #ffb3ad;
+
+  --sidebar-width: 260px;
+  --card-shadow: 0px 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Hanken Grotesk', sans-serif;
+  background-color: var(--background);
+  color: var(--on-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: 'Manrope', sans-serif;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #e1e3e4;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Ant Design Overrides */
+.ant-btn-primary {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+}
+.ant-btn-primary:hover {
+  background-color: var(--primary-container) !important;
+  border-color: var(--primary-container) !important;
+}
+
+.ant-input:focus,
+.ant-input-focused {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px rgba(133, 18, 23, 0.1) !important;
+}
+
+.ant-select:not(.ant-select-disabled):hover .ant-select-selector,
+.ant-select-focused .ant-select-selector {
+  border-color: var(--primary) !important;
+}
+
+.ant-menu-item-selected {
+  background-color: var(--secondary-container) !important;
+  color: var(--primary) !important;
+}
+
+/* Premium Card */
+.premium-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.premium-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+/* Sidebar Active */
+.sidebar-active {
+  background-color: var(--secondary-container) !important;
+  color: var(--primary) !important;
+  font-weight: 600;
+  border-right: 4px solid var(--primary);
+}
+
+/* Labels */
+.label-sm {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.body-md {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.body-lg {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.headline-md {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  font-family: 'Manrope', sans-serif;
+}
+
+.display-lg {
+  font-size: 30px;
+  line-height: 38px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  font-family: 'Manrope', sans-serif;
+}
+
+/* Status Badges */
+.badge-pending {
+  background: #fff7ed;
+  color: #c2410c;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-accepted {
+  background: #f0fdf4;
+  color: #15803d;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-paid {
+  background: #f0fdf4;
+  color: #15803d;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-overdue {
+  background: #fef2f2;
+  color: #dc2626;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}

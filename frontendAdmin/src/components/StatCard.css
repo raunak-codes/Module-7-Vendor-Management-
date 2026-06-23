@@ -1,0 +1,64 @@
+.stat-card {
+  padding: var(--space-card-padding);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 128px;
+}
+
+.stat-card--accent-left {
+  border-left: 4px solid var(--color-primary);
+}
+
+.stat-card__label {
+  color: var(--color-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.stat-card__bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stat-card__value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-on-surface);
+  font-family: var(--font-display);
+}
+
+.stat-card__sub {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stat-card__sub--default {
+  color: var(--color-secondary);
+}
+
+.stat-card__sub--success {
+  color: var(--color-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-card__sub--error {
+  color: var(--color-error);
+}
+
+.stat-card__sub--warning {
+  color: #d97706;
+}
+
+.stat-card__icon {
+  color: var(--color-secondary);
+  opacity: 0.2;
+  font-size: 28px;
+}

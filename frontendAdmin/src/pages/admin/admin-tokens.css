@@ -1,0 +1,195 @@
+/* Admin-page design tokens.
+ * Shared by every page under src/pages/admin (Dashboard, Vendor Directory,
+ * Vendor Profile, Vendor Allocation, KYC, Purchase Orders + Details,
+ * Work Orders + Details, Invoices, Payments, Analytics, Notifications,
+ * Audit Logs, Settings, Logout). Every page imports "./admin-tokens.css"
+ * and references these variables as var(--admin-*).
+ *
+ * FIXED: the previous version of this file had its variable names corrupted
+ * (the "admin" segment was stripped out, e.g. "--admin-primary" became
+ * "---primary"), so every var(--admin-*) reference across all admin page
+ * CSS resolved to nothing and silently fell back to unset/transparent.
+ * Names below are restored to match what the page CSS actually references,
+ * and values are aligned to the EventHub360 brand spec.
+ */
+:root {
+  --admin-primary: #610000;
+  --admin-primary-dark: #4a0000;
+  --admin-primary-darker: #330000;
+  --admin-secondary: #b51b1e;
+  --admin-gradient: linear-gradient(135deg, #610000 0%, #b51b1e 100%);
+  --admin-font-display: 'Montserrat', Arial, sans-serif;
+  --admin-font-body: 'Inter', Arial, sans-serif;
+
+  --admin-success: #1e7e34;
+  --admin-success-bg: #e6f4ea;
+  --admin-warning: #b3791e;
+  --admin-warning-bg: #fdf1e0;
+  --admin-error: #ba1a1a;
+  --admin-error-bg: #fdeaea;
+  --admin-info: #1a5fb3;
+  --admin-info-bg: #e8f0fb;
+
+  --admin-on-background: #231918;
+  --admin-on-surface-muted: #6b5c5a;
+
+  --admin-background: #fcf9f8;
+  --admin-surface: #fcf9f8;
+  --admin-surface-container: #f0eded;
+  --admin-surface-low: #f7f3f2;
+  --admin-surface-high: #ece6e5;
+  --admin-surface-dim: #e3dcdb;
+  --admin-surface-variant: #f0eded;
+
+  --admin-radius-sm: 4px;
+  --admin-radius-md: 8px;
+  --admin-radius-lg: 16px;
+  --admin-radius-full: 999px;
+
+  --admin-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --admin-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.12);
+
+  --admin-gutter: 24px;
+  --admin-stack-lg: 24px;
+}
+
+/* ============================================================
+ * Shared base classes.
+ * FIXED: .admin-page, .admin-card, .admin-btn (+ variants),
+ * .admin-label, .admin-select, .admin-input, .admin-section-title
+ * and .premium-card are referenced across every admin page and several
+ * shared components (StatCard, PageHeader actions, filters, forms) but
+ * were never defined anywhere in the project - every card, button, form
+ * field, and section title across the whole admin portal was rendering
+ * with zero base styling. Defined once here since every page already
+ * imports this file.
+ * ============================================================ */
+
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-stack-lg);
+}
+
+.admin-card,
+.premium-card {
+  background-color: var(--admin-surface);
+  border: 1px solid var(--admin-surface-high);
+  border-radius: var(--admin-radius-lg);
+  box-shadow: var(--admin-shadow-sm);
+  padding: var(--admin-gutter);
+}
+
+.admin-section-title {
+  font-family: var(--admin-font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--admin-on-background);
+}
+
+.admin-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--admin-on-surface-muted);
+  margin-bottom: 6px;
+}
+
+.admin-select,
+.admin-input,
+textarea.admin-input {
+  width: 100%;
+  font-family: var(--admin-font-body);
+  font-size: 14px;
+  color: var(--admin-on-background);
+  background-color: var(--admin-surface);
+  border: 1px solid var(--admin-surface-high);
+  border-radius: var(--admin-radius-md);
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-select:focus,
+.admin-input:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px rgba(97, 0, 0, 0.1);
+}
+
+.admin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--admin-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: var(--admin-radius-full);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.admin-btn--primary {
+  background-color: var(--admin-primary);
+  color: #ffffff;
+}
+
+.admin-btn--primary:hover {
+  opacity: 0.9;
+}
+
+.admin-btn--outline {
+  background-color: transparent;
+  color: var(--admin-on-background);
+  border-color: var(--admin-surface-high);
+}
+
+.admin-btn--outline:hover {
+  background-color: var(--admin-surface-container);
+}
+
+.admin-btn--danger {
+  background-color: var(--admin-secondary);
+  color: #ffffff;
+}
+
+.admin-btn--danger:hover {
+  opacity: 0.9;
+}
+
+.admin-btn--ghost {
+  background-color: transparent;
+  color: var(--admin-secondary);
+  padding: 6px 10px;
+}
+
+.admin-btn--ghost:hover {
+  background-color: rgba(181, 27, 30, 0.06);
+}
+
+.admin-fab {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--admin-secondary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: var(--admin-shadow-md);
+  z-index: 40;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.admin-fab:hover {
+  transform: scale(1.05);
+}

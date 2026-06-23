@@ -1,0 +1,86 @@
+.admin-po-mgmt__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--admin-gutter);
+  margin-bottom: var(--admin-stack-lg);
+}
+
+.admin-po-mgmt__table-card {
+  margin-bottom: var(--admin-gutter);
+  overflow: hidden;
+}
+
+.admin-po-mgmt__panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-po-mgmt__panel-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.admin-po-mgmt__id {
+  color: var(--admin-primary);
+  font-weight: 700;
+}
+
+.admin-po-mgmt__vendor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.admin-po-mgmt__avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--admin-surface-high);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.admin-po-mgmt__footer-text {
+  font-size: 0.8rem;
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-po-mgmt__recent {
+  padding: 20px;
+}
+
+.admin-po-mgmt__activity {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-po-mgmt__activity li {
+  font-size: 0.85rem;
+  color: var(--admin-on-background);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--admin-surface-low);
+}
+
+.admin-po-mgmt__activity li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+@media (max-width: 768px) {
+  .admin-po-mgmt__stats {
+    grid-template-columns: 1fr;
+  }
+}

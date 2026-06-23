@@ -1,0 +1,131 @@
+.admin-settings__panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-settings__tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 var(--admin-gutter);
+  border-bottom: 1px solid var(--admin-surface-high);
+  overflow-x: auto;
+}
+
+.admin-settings__tab {
+  padding: 16px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--admin-on-surface-muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  margin-right: 20px;
+}
+
+.admin-settings__tab--active {
+  color: var(--admin-secondary);
+  border-bottom-color: var(--admin-secondary);
+}
+
+.admin-settings__body {
+  padding: var(--admin-gutter);
+}
+
+.admin-settings__body-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--admin-stack-lg);
+}
+
+.admin-settings__roles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--admin-gutter);
+}
+
+.admin-settings__role-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: none;
+  border: 1px solid var(--admin-surface-high);
+}
+
+.admin-settings__role-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-settings__role-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--admin-radius-md);
+  background-color: var(--admin-surface-container);
+  color: var(--admin-secondary);
+}
+
+.admin-settings__role-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: var(--admin-radius-full);
+  background-color: var(--admin-surface-container);
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-settings__role-tag--system {
+  background-color: rgba(181, 27, 30, 0.08);
+  color: var(--admin-secondary);
+}
+
+.admin-settings__role-title {
+  color: var(--admin-on-background);
+}
+
+.admin-settings__role-desc {
+  color: var(--admin-on-surface-muted);
+  flex: 1;
+}
+
+.admin-settings__role-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-settings__role-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.admin-settings__role-delete {
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-settings__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-settings__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .admin-settings__roles {
+    grid-template-columns: 1fr;
+  }
+}

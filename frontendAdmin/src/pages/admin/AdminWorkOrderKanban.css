@@ -1,0 +1,166 @@
+.admin-wo-kanban__board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--admin-gutter);
+  align-items: start;
+}
+
+.admin-wo-kanban__column {
+  background: var(--admin-surface-container);
+  border-radius: var(--admin-radius-lg);
+  padding: 16px;
+  min-height: 200px;
+}
+
+.admin-wo-kanban__col-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.admin-wo-kanban__col-head h3 {
+  font-family: var(--admin-font-display);
+  font-size: 1rem;
+  margin: 0;
+  color: var(--admin-on-background);
+}
+
+.admin-wo-kanban__col-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.admin-wo-kanban__col-count {
+  margin-left: auto;
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius-full);
+  padding: 2px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-wo-kanban__col-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-wo-kanban__card {
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius-md);
+  padding: 16px;
+  box-shadow: var(--admin-shadow-sm);
+  cursor: grab;
+}
+
+.admin-wo-kanban__tag {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: var(--admin-radius-sm);
+  margin-bottom: 8px;
+}
+
+.admin-wo-kanban__tag--error {
+  background: var(--admin-error-bg);
+  color: var(--admin-error);
+}
+
+.admin-wo-kanban__tag--warning {
+  background: var(--admin-warning-bg);
+  color: var(--admin-warning);
+}
+
+.admin-wo-kanban__tag--info {
+  background: var(--admin-info-bg);
+  color: var(--admin-info);
+}
+
+.admin-wo-kanban__tag--success {
+  background: var(--admin-success-bg);
+  color: var(--admin-success);
+}
+
+.admin-wo-kanban__card-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin: 0 0 6px;
+}
+
+.admin-wo-kanban__card-title--done {
+  text-decoration: line-through;
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-wo-kanban__card-vendor {
+  font-size: 0.78rem;
+  color: var(--admin-on-surface-muted);
+  margin: 0 0 10px;
+}
+
+.admin-wo-kanban__progress-track {
+  height: 5px;
+  background: var(--admin-surface-low);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.admin-wo-kanban__progress-track div {
+  height: 100%;
+  background: linear-gradient(90deg, #b52619, #ff5722);
+}
+
+.admin-wo-kanban__progress-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--admin-primary);
+  margin: 0 0 10px;
+}
+
+.admin-wo-kanban__card-footer {
+  border-top: 1px solid var(--admin-surface-low);
+  padding-top: 10px;
+  margin-top: 6px;
+}
+
+.admin-wo-kanban__card-time {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--admin-primary);
+  margin: 0 0 8px;
+}
+
+.admin-wo-kanban__card-time--done {
+  color: var(--admin-success);
+}
+
+.admin-wo-kanban__card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-wo-kanban__card-actions .admin-btn {
+  font-size: 0.68rem;
+  padding: 8px;
+}
+
+.admin-wo-kanban__icon-btn {
+  border: 1px solid var(--admin-surface-variant);
+  background: var(--admin-surface);
+  border-radius: var(--admin-radius-sm);
+  width: 36px;
+  cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .admin-wo-kanban__board {
+    grid-template-columns: 1fr;
+  }
+}

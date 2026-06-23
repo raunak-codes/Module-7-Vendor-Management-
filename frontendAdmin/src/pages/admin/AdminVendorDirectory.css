@@ -1,0 +1,105 @@
+.admin-vendor-dir__filters {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--admin-gutter);
+  padding: 20px 24px;
+  margin-bottom: var(--admin-stack-lg);
+}
+
+.admin-vendor-dir__filter {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-vendor-dir__filter select {
+  width: 100%;
+}
+
+.admin-vendor-dir__table-card {
+  margin-bottom: var(--admin-stack-lg);
+  overflow: hidden;
+}
+
+.admin-vendor-dir__id {
+  color: var(--admin-on-surface-muted);
+  font-size: 0.8rem;
+}
+
+.admin-vendor-dir__name {
+  font-weight: 700;
+  color: var(--admin-on-background);
+}
+
+.admin-vendor-dir__rating {
+  color: #caa802;
+  letter-spacing: 1px;
+}
+
+.admin-vendor-dir__rating span {
+  color: var(--admin-on-surface-muted);
+  letter-spacing: normal;
+  margin-left: 4px;
+  font-size: 0.78rem;
+}
+
+.admin-vendor-dir__contact {
+  color: var(--admin-primary);
+  font-size: 0.82rem;
+}
+
+.admin-vendor-dir__footer-text {
+  font-size: 0.8rem;
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-vendor-dir__footer-text strong {
+  color: var(--admin-on-background);
+}
+
+.admin-vendor-dir__pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-vendor-dir__pagination button {
+  min-width: 30px;
+  height: 30px;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-surface-variant);
+  background: var(--admin-surface);
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--admin-on-background);
+}
+
+.admin-vendor-dir__pagination span {
+  color: var(--admin-on-surface-muted);
+  padding: 0 2px;
+}
+
+.admin-vendor-dir__page--active {
+  background: var(--admin-primary) !important;
+  color: #fff !important;
+  border-color: var(--admin-primary) !important;
+  font-weight: 700;
+}
+
+.admin-vendor-dir__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--admin-gutter);
+}
+
+@media (max-width: 1024px) {
+  .admin-vendor-dir__filters {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-vendor-dir__filters,
+  .admin-vendor-dir__stats {
+    grid-template-columns: 1fr;
+  }
+}

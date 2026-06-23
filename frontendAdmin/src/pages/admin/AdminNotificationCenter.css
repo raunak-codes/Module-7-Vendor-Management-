@@ -1,0 +1,219 @@
+.admin-notif__tabs {
+  display: flex;
+  gap: 4px;
+  background-color: var(--admin-surface-container);
+  padding: 4px;
+  border-radius: var(--admin-radius-full);
+}
+
+.admin-notif__tab {
+  padding: 8px 18px;
+  border-radius: var(--admin-radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-notif__tab--active {
+  background-color: var(--admin-surface);
+  color: var(--admin-secondary);
+  box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-notif__categories {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.admin-notif__chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: var(--admin-radius-full);
+  border: 1px solid var(--admin-surface-high);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--admin-on-surface-muted);
+  white-space: nowrap;
+  background-color: var(--admin-surface);
+}
+
+.admin-notif__chip--active {
+  background-color: var(--admin-secondary);
+  border-color: var(--admin-secondary);
+  color: #ffffff;
+}
+
+.admin-notif__timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-notif__group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-notif__group-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-notif__group-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--admin-surface-high);
+  color: var(--admin-on-surface-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-notif__group-icon--secondary {
+  background-color: var(--admin-secondary);
+  color: #ffffff;
+}
+
+.admin-notif__muted-title {
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-notif__group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-left: 52px;
+}
+
+.admin-notif__group-items--muted {
+  opacity: 0.85;
+}
+
+.admin-notif__card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  border-left: 4px solid transparent;
+  position: relative;
+}
+
+.admin-notif__card--secondary {
+  border-left-color: var(--admin-secondary);
+}
+
+.admin-notif__card--success {
+  border-left-color: var(--admin-success);
+}
+
+.admin-notif__card--primary {
+  border-left-color: var(--admin-primary);
+}
+
+.admin-notif__card--muted {
+  border-left-color: var(--admin-surface-high);
+}
+
+.admin-notif__card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--admin-radius-md);
+  background-color: var(--admin-surface-container);
+  color: var(--admin-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-notif__card-body {
+  flex: 1;
+}
+
+.admin-notif__card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-notif__card-title {
+  color: var(--admin-on-background);
+  font-weight: 700;
+}
+
+.admin-notif__unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--admin-error);
+}
+
+.admin-notif__card-text {
+  color: var(--admin-on-surface-muted);
+  margin-top: 4px;
+}
+
+.admin-notif__card-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.admin-notif__time-pill {
+  background-color: var(--admin-surface-container);
+  padding: 4px 10px;
+  border-radius: var(--admin-radius-sm);
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-notif__card-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.admin-notif__icon-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--admin-radius-md);
+  color: var(--admin-on-surface-muted);
+}
+
+.admin-notif__icon-btn:hover {
+  background-color: var(--admin-surface-container);
+}
+
+.admin-notif__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  text-align: center;
+  gap: 8px;
+}
+
+.admin-notif__empty-icon {
+  font-size: 56px;
+  color: var(--admin-surface-high);
+}
+
+.admin-notif__muted {
+  color: var(--admin-on-surface-muted);
+}
+
+@media (max-width: 700px) {
+  .admin-notif__group-items {
+    padding-left: 0;
+  }
+}
