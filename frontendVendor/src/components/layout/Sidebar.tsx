@@ -2,14 +2,42 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, Modal } from 'antd';
 import { useState } from 'react';
 
-const navItems = [
-  { label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
-  { label: 'Purchase Orders', icon: 'receipt_long', path: '/purchase-orders' },
-  { label: 'Work Orders', icon: 'engineering', path: '/work-orders' },
-  { label: 'Finance', icon: 'payments', path: '/finance' },
-  { label: 'Profile', icon: 'account_circle', path: '/profile' },
-  { label: 'Ratings & Reviews', icon: 'star', path: '/ratings' },
-  { label: 'Notifications', icon: 'notifications', path: '/notifications' },
+const navGroups = [
+  {
+    label: null,
+    items: [
+      { label: 'Dashboard', icon: 'dashboard', path: '/dashboard' },
+    ],
+  },
+  {
+    label: 'OPERATIONS',
+    items: [
+      { label: 'Purchase Orders', icon: 'receipt_long', path: '/purchase-orders' },
+      { label: 'Work Orders', icon: 'engineering', path: '/work-orders' },
+      { label: 'Event Allocations', icon: 'event', path: '/events' },
+    ],
+  },
+  {
+    label: 'FINANCE',
+    items: [
+      { label: 'Payment History', icon: 'payments', path: '/finance' },
+    ],
+  },
+  {
+    label: 'MY PROFILE',
+    items: [
+      { label: 'Vendor Profile', icon: 'account_circle', path: '/profile' },
+      { label: 'Service Management', icon: 'room_service', path: '/profile/services' },
+      { label: 'Rate Cards', icon: 'credit_card', path: '/profile/rate-cards' },
+    ],
+  },
+  {
+    label: 'FEEDBACK',
+    items: [
+      { label: 'Ratings & Reviews', icon: 'star', path: '/ratings' },
+      { label: 'Notifications', icon: 'notifications', path: '/notifications' },
+    ],
+  },
 ];
 
 export default function Sidebar() {
@@ -18,9 +46,8 @@ export default function Sidebar() {
   const [logoutModal, setLogoutModal] = useState(false);
 
   const isActive = (path: string) => {
-    if (path === '/purchase-orders') {
-      return location.pathname.startsWith('/purchase-orders');
-    }
+    if (path === '/purchase-orders') return location.pathname.startsWith('/purchase-orders');
+    if (path === '/finance') return location.pathname === '/finance';
     return location.pathname === path;
   };
 
@@ -59,54 +86,47 @@ export default function Sidebar() {
         </div>
 
         {/* Nav */}
-        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {navItems.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={isActive(item.path) ? 'sidebar-active' : ''}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '12px 16px',
-                borderRadius: 8,
-                border: 'none',
-                background: isActive(item.path) ? 'var(--secondary-container)' : 'transparent',
-                color: isActive(item.path) ? 'var(--primary)' : 'var(--secondary)',
-                fontWeight: isActive(item.path) ? 600 : 400,
-                cursor: 'pointer',
-                width: '100%',
-                textAlign: 'left',
-                fontSize: 14,
-                fontFamily: 'Hanken Grotesk, sans-serif',
-                transition: 'all 0.2s ease',
-                borderRight: isActive(item.path) ? '4px solid var(--primary)' : '4px solid transparent',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive(item.path)) {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-container)';
-                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--primary)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive(item.path)) {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--secondary)';
-                }
-              }}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{
-                  fontSize: 22,
-                  fontVariationSettings: isActive(item.path) ? "'FILL' 1" : "'FILL' 0",
-                }}
-              >
-                {item.icon}
-              </span>
-              <span>{item.label}</span>
-            </button>
+        <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto' }}>
+          {navGroups.map((group, gi) => (
+            <div key={gi} style={{ marginBottom: 8 }}>
+              {group.label && (
+                <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--secondary)', letterSpacing: '0.1em', padding: '10px 16px 4px', opacity: 0.6 }}>{group.label}</p>
+              )}
+              {group.items.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className={isActive(item.path) ? 'sidebar-active' : ''}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
+                    borderRadius: 8, border: 'none',
+                    background: isActive(item.path) ? 'var(--secondary-container)' : 'transparent',
+                    color: isActive(item.path) ? 'var(--primary)' : 'var(--secondary)',
+                    fontWeight: isActive(item.path) ? 600 : 400,
+                    cursor: 'pointer', width: '100%', textAlign: 'left', fontSize: 13,
+                    fontFamily: 'Hanken Grotesk, sans-serif', transition: 'all 0.2s ease',
+                    borderRight: isActive(item.path) ? '4px solid var(--primary)' : '4px solid transparent',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive(item.path)) {
+                      (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-container)';
+                      (e.currentTarget as HTMLButtonElement).style.color = 'var(--primary)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive(item.path)) {
+                      (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                      (e.currentTarget as HTMLButtonElement).style.color = 'var(--secondary)';
+                    }
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, fontVariationSettings: isActive(item.path) ? "'FILL' 1" : "'FILL' 0" }}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
 
