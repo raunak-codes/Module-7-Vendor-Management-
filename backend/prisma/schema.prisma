@@ -1,0 +1,354 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  VENDOR
+}
+
+enum VendorStatus {
+  PENDING
+  ONBOARDING
+  ACTIVE
+  REJECTED
+  INACTIVE
+  SUSPENDED
+  BLACKLISTED
+}
+
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum KycDocumentType {
+  PAN
+  GST_CERTIFICATE
+  INCORPORATION_CERTIFICATE
+  BANK_STATEMENT
+  CANCELLED_CHEQUE
+  MSME_CERTIFICATE
+  OTHER
+}
+
+enum PoStatus {
+  DRAFT
+  ISSUED
+  ACCEPTED
+  REJECTED
+  PARTIAL_FULFILLED
+  FULFILLED
+  CANCELLED
+}
+
+enum WorkOrderStatus {
+  DRAFT
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  PAID
+  PARTIAL_PAID
+}
+
+enum NotificationType {
+  INFO
+  WARNING
+  ALERT
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  phone         String?        @unique
+  passwordHash  String?
+  role          Role           @default(VENDOR)
+  vendorId      String?        @unique
+  vendor        Vendor?        @relation(fields: [vendorId], references: [id])
+  
+  notifications Notification[]
+  ratingsGiven  VendorRating[] @relation("Reviewer")
+  auditLogs     AuditLog[]
+
+  isDeleted     Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([role])
+}
+
+model Vendor {
+  id                  String       @id @default(uuid())
+  businessName        String
+  businessDescription String?      @db.Text
+  contactPersonName   String
+  address             String       @db.Text
+  
+  gstNumber           String?      @unique
+  panNumber           String?      @unique
+  taxId               String?      @unique 
+  
+  bankAccountNumber   String?
+  ifscCode            String?
+
+  status              VendorStatus @default(PENDING)
+  categoryId          String
+  category            VendorCategory @relation(fields: [categoryId], references: [id])
+  
+  user                User?
+  
+  isDeleted           Boolean      @default(false)
+  deletedAt           DateTime?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  kycDocuments        VendorKycDocument[]
+  services            VendorService[]
+  eventVendors        EventVendor[]
+  purchaseOrders      PurchaseOrder[]
+  workOrders          WorkOrder[]
+  invoices            VendorInvoice[]
+  ratings             VendorRating[] @relation("VendorRated")
+  blacklistRecord     VendorBlacklist?
+  auditLogs           AuditLog[]
+
+  @@index([status])
+  @@index([categoryId])
+}
+
+model VendorCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  vendors     Vendor[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VendorKycDocument {
+  id           String          @id @default(uuid())
+  vendorId     String
+  vendor       Vendor          @relation(fields: [vendorId], references: [id])
+  type         KycDocumentType
+  documentUrl  String
+  status       KycStatus       @default(PENDING)
+  expiryDate   DateTime?
+
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([vendorId])
+  @@index([status])
+}
+
+model VendorService {
+  id          String   @id @default(uuid())
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id])
+  name        String
+  description String?
+  rate        Decimal? @db.Decimal(10, 2)
+  currency    String?  @default("INR")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([vendorId])
+}
+
+model EventVendor {
+  id        String   @id @default(uuid())
+  eventId   String   
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  role      String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, vendorId])
+  @@index([eventId])
+  @@index([vendorId])
+}
+
+model PurchaseOrder {
+  id          String            @id @default(uuid())
+  poNumber    String            @unique
+  vendorId    String
+  vendor      Vendor            @relation(fields: [vendorId], references: [id])
+  eventId     String?           
+  status      PoStatus          @default(DRAFT)
+  totalAmount Decimal           @db.Decimal(10, 2)
+  currency    String            @default("INR")
+  issueDate   DateTime?
+  expectedDeliveryDate DateTime?
+
+  isDeleted   Boolean           @default(false)
+  deletedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  lines       PurchaseOrderLine[]
+  workOrders  WorkOrder[]
+  invoices    VendorInvoice[]
+
+  @@index([vendorId])
+  @@index([status])
+}
+
+model PurchaseOrderLine {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  description     String
+  quantity        Int
+  unitPrice       Decimal       @db.Decimal(10, 2)
+  totalPrice      Decimal       @db.Decimal(10, 2)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([purchaseOrderId])
+}
+
+model WorkOrder {
+  id              String          @id @default(uuid())
+  woNumber        String          @unique
+  vendorId        String
+  vendor          Vendor          @relation(fields: [vendorId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?  @relation(fields: [purchaseOrderId], references: [id])
+  eventId         String?
+  status          WorkOrderStatus @default(DRAFT)
+  description     String
+  startDate       DateTime?
+  endDate         DateTime?
+
+  isDeleted       Boolean         @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([vendorId])
+  @@index([purchaseOrderId])
+  @@index([status])
+}
+
+model VendorInvoice {
+  id              String            @id @default(uuid())
+  invoiceNumber   String            @unique
+  vendorId        String
+  vendor          Vendor            @relation(fields: [vendorId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder?    @relation(fields: [purchaseOrderId], references: [id])
+  status          InvoiceStatus     @default(DRAFT)
+  totalAmount     Decimal           @db.Decimal(10, 2)
+  currency        String            @default("INR")
+  dueDate         DateTime?
+  paymentDate     DateTime?
+
+  isDeleted       Boolean           @default(false)
+  deletedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  lines           VendorInvoiceLine[]
+
+  @@index([vendorId])
+  @@index([purchaseOrderId])
+  @@index([status])
+}
+
+model VendorInvoiceLine {
+  id              String        @id @default(uuid())
+  invoiceId       String
+  invoice         VendorInvoice @relation(fields: [invoiceId], references: [id])
+  description     String
+  quantity        Int
+  unitPrice       Decimal       @db.Decimal(10, 2)
+  totalPrice      Decimal       @db.Decimal(10, 2)
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([invoiceId])
+}
+
+model VendorRating {
+  id          String   @id @default(uuid())
+  vendorId    String
+  vendor      Vendor   @relation("VendorRated", fields: [vendorId], references: [id])
+  eventId     String?  
+  rating      Int      
+  review      String?  @db.Text
+  reviewerId  String   
+  reviewer    User     @relation("Reviewer", fields: [reviewerId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([vendorId])
+  @@index([reviewerId])
+}
+
+model VendorBlacklist {
+  id              String   @id @default(uuid())
+  vendorId        String   @unique
+  vendor          Vendor   @relation(fields: [vendorId], references: [id])
+  reason          String   @db.Text
+  blacklistedById String 
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  type        NotificationType @default(INFO)
+  title       String
+  message     String           @db.Text
+  isRead      Boolean          @default(false)
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  vendorId    String?
+  vendor      Vendor?  @relation(fields: [vendorId], references: [id])
+  action      String   
+  entity      String   
+  entityId    String   
+  changes     Json?    
+  userId      String?  
+  user        User?    @relation(fields: [userId], references: [id])
+
+  createdAt   DateTime @default(now())
+
+  @@index([vendorId])
+  @@index([entity, entityId])
+  @@index([userId])
+}
