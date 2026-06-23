@@ -1,59 +1,88 @@
+import { useState, useEffect } from 'react';
 import { Button } from 'antd';
 import { FilterOutlined, SortAscendingOutlined } from '@ant-design/icons';
 
-const columns = [
-  {
-    id: 'todo',
-    label: 'To Do',
-    dot: '#bdc7d8',
-    count: 3,
-    cards: [
-      {
-        id: '#WO-2901', title: 'Stage Setup', category: 'Stage', categoryBg: 'rgba(85,95,109,0.1)', categoryColor: 'var(--on-secondary-container)',
-        time: '14 Oct, 10:00 AM', status: 'New', statusColor: 'var(--error)', hasLine: false, progress: null,
-        avatars: [null, '+2'],
-      },
-      {
-        id: '#WO-2905', title: 'VIP Entrance Decor', category: 'Floral', categoryBg: 'rgba(0,77,51,0.1)', categoryColor: 'var(--tertiary)',
-        time: '14 Oct, 11:30 AM', status: 'Pending', statusColor: 'var(--error)', hasLine: false, progress: null,
-        avatars: [null],
-      },
-    ],
-  },
-  {
-    id: 'inprogress',
-    label: 'In Progress',
-    dot: 'var(--tertiary)',
-    count: 1,
-    cards: [
-      {
-        id: '#WO-2892', title: 'Sound Check', category: 'Audio', categoryBg: 'rgba(85,95,109,0.1)', categoryColor: 'var(--on-secondary-container)',
-        time: '14 Oct, 02:00 PM', status: 'Active', statusColor: 'var(--tertiary)', hasLine: true, progress: 65,
-        avatars: [null], assignee: 'Marc L.',
-      },
-    ],
-  },
-  {
-    id: 'completed',
-    label: 'Completed',
-    dot: 'var(--secondary)',
-    count: 2,
-    cards: [
-      {
-        id: '#WO-2880', title: 'Lighting Rigging', category: 'Lighting', categoryBg: 'var(--surface-container-highest)', categoryColor: 'var(--secondary)',
-        time: 'Completed 09:15 AM', status: 'Completed', statusColor: 'var(--tertiary)', hasLine: false, progress: null,
-        avatars: [null], completed: true,
-      },
-      {
-        id: '#WO-2875', title: 'Main Hall Catering Prep', category: 'F&B', categoryBg: 'var(--surface-container-highest)', categoryColor: 'var(--secondary)',
-        time: 'Completed 08:30 AM', status: 'Completed', statusColor: 'var(--tertiary)', hasLine: false, progress: null,
-        avatars: [null], completed: true,
-      },
-    ],
-  },
-];
-
 export default function WorkOrders() {
+  const [workOrders, setWorkOrders] = useState([]);
+
+  useEffect(() => {
+    fetchWorkOrders();
+  }, []);
+
+  const fetchWorkOrders = async () => {
+    try {
+      const token = localStorage.getItem('vendorToken');
+      const res = await fetch('http://localhost:5000/api/v1/work-orders', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setWorkOrders(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleUpdateStatus = async (id, status, e) => {
+    if(e) e.stopPropagation();
+    try {
+      const token = localStorage.getItem('vendorToken');
+      const res = await fetch(`http://localhost:5000/api/v1/work-orders/${id}/status`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        fetchWorkOrders();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const getCardsByStatus = (statusList) => {
+    return workOrders.filter(wo => statusList.includes(wo.status)).map(wo => ({
+      id: wo.woNumber,
+      dbId: wo.id,
+      title: wo.description,
+      category: wo.eventId ? 'Event' : 'General',
+      categoryBg: 'rgba(85,95,109,0.1)',
+      categoryColor: 'var(--on-secondary-container)',
+      time: new Date(wo.createdAt).toLocaleDateString(),
+      status: wo.status,
+      statusColor: wo.status === 'ASSIGNED' ? 'var(--error)' : wo.status === 'IN_PROGRESS' ? 'var(--tertiary)' : 'var(--secondary)',
+      hasLine: wo.status === 'IN_PROGRESS',
+      progress: wo.status === 'IN_PROGRESS' ? 50 : null,
+      completed: wo.status === 'COMPLETED' || wo.status === 'CANCELLED',
+      assignee: wo.vendor?.businessName || 'Me'
+    }));
+  };
+
+  const columns = [
+    {
+      id: 'todo',
+      label: 'To Do',
+      dot: '#bdc7d8',
+      cards: getCardsByStatus(['ASSIGNED']),
+    },
+    {
+      id: 'inprogress',
+      label: 'In Progress',
+      dot: 'var(--tertiary)',
+      cards: getCardsByStatus(['IN_PROGRESS']),
+    },
+    {
+      id: 'completed',
+      label: 'Completed',
+      dot: 'var(--secondary)',
+      cards: getCardsByStatus(['COMPLETED', 'CANCELLED']),
+    },
+  ];
+
   return (
     <div>
       {/* Header */}
@@ -86,7 +115,7 @@ export default function WorkOrders() {
                 <span style={{
                   background: 'var(--surface-container-high)', borderRadius: 4,
                   padding: '1px 6px', fontSize: 10, fontWeight: 700, color: 'var(--secondary)',
-                }}>{col.count}</span>
+                }}>{col.cards.length}</span>
               </div>
               <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--secondary)' }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 20 }}>more_horiz</span>
@@ -95,6 +124,9 @@ export default function WorkOrders() {
 
             {/* Cards */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {col.cards.length === 0 && (
+                <div style={{ padding: 24, textAlign: 'center', color: 'var(--secondary)' }}>No items</div>
+              )}
               {col.cards.map((card: any) => (
                 <div key={card.id}
                   style={{
@@ -129,7 +161,15 @@ export default function WorkOrders() {
                         <span className="material-symbols-outlined" style={{ fontSize: 18, color: 'var(--tertiary)', fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                       )}
                     </div>
-                    <span className="material-symbols-outlined" style={{ fontSize: 20, color: 'var(--secondary)', opacity: 0 }}>open_in_new</span>
+                    {/* Action button inside card */}
+                    {!card.completed && (
+                      <button 
+                        onClick={(e) => handleUpdateStatus(card.dbId, card.status === 'ASSIGNED' ? 'IN_PROGRESS' : 'COMPLETED', e)}
+                        style={{ background: 'var(--primary)', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: 4, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        {card.status === 'ASSIGNED' ? 'Start' : 'Complete'}
+                      </button>
+                    )}
                   </div>
 
                   {/* Title */}
@@ -149,7 +189,7 @@ export default function WorkOrders() {
                     </div>
                     {!card.completed && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: card.statusColor, animation: card.status === 'Active' ? 'pulse 2s infinite' : 'none', display: 'inline-block' }} />
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: card.statusColor, animation: card.status === 'IN_PROGRESS' ? 'pulse 2s infinite' : 'none', display: 'inline-block' }} />
                         <span style={{ fontSize: 14, fontWeight: 500, color: card.statusColor }}>Status: {card.status}</span>
                       </div>
                     )}

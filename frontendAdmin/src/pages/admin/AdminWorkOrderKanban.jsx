@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import PageHeader from "../../components/PageHeader";
 import AdminLayout from "../../layouts/AdminLayout";
@@ -11,61 +11,107 @@ import "./AdminWorkOrderKanban.css";
  * Matches Stitch screen: work_order_kanban
  */
 
-const INITIAL_COLUMNS = {
-  todo: {
-    label: "To Do",
-    color: "#8e706b",
-    items: [
-      { id: "WO-1", tag: "High Priority", tagColor: "error", title: "Stage Rigging Setup", vendor: "Elite Production Services", meta: "Today, 4:00 PM" },
-      { id: "WO-2", tag: "Logistics", tagColor: "warning", title: "Linen Delivery Inspection", vendor: "Luxe Textiles Co.", meta: "Oct 24, 09:00 AM" },
-    ],
-  },
-  inProgress: {
-    label: "In Progress",
-    color: "#b51b1e",
-    items: [
-      { id: "WO-3", tag: "Critical Phase", tagColor: "error", title: "Grand Piano Tuning", vendor: "Steinway Specialist Team", progress: 65 },
-      { id: "WO-4", tag: "AV / Technical", tagColor: "info", title: "Main LED Wall Testing", vendor: "Visionary Visuals LLC", progress: 40 },
-    ],
-  },
-  completed: {
-    label: "Completed",
-    color: "#1f8b4c",
-    items: [
-      { id: "WO-5", tag: "Finished", tagColor: "success", title: "Security Perimeter Setup", vendor: "Safeguard Elite", meta: "Completed 2h ago" },
-      { id: "WO-6", tag: "Finished", tagColor: "success", title: "Floral Chandelier Installation", vendor: "Bloom & Stem Designs", meta: "Completed 5h ago" },
-    ],
-  },
-};
-
 const AdminWorkOrderKanban = () => {
   const navigate = useNavigate();
-  const [columns, setColumns] = useState(INITIAL_COLUMNS);
+  const [columns, setColumns] = useState({
+    todo: { label: "To Do", color: "#8e706b", items: [] },
+    inProgress: { label: "In Progress", color: "#b51b1e", items: [] },
+    completed: { label: "Completed", color: "#1f8b4c", items: [] },
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [dragItem, setDragItem] = useState(null);
 
-  const handleDrop = (colKey) => {
-    if (!dragItem) return;
-    setColumns((prev) => {
-      const next = { ...prev };
-      // remove from source
-      Object.keys(next).forEach((k) => {
-        next[k] = { ...next[k], items: next[k].items.filter((i) => i.id !== dragItem.id) };
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      const res = await fetch("http://localhost:5000/api/v1/work-orders", {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      next[colKey] = { ...next[colKey], items: [...next[colKey].items, dragItem.item] };
-      return next;
-    });
+      if (!res.ok) throw new Error("Failed to fetch work orders");
+      const { data } = await res.json();
+      
+      const newColumns = {
+        todo: { label: "To Do", color: "#8e706b", items: [] },
+        inProgress: { label: "In Progress", color: "#b51b1e", items: [] },
+        completed: { label: "Completed", color: "#1f8b4c", items: [] },
+      };
+
+      data.forEach(wo => {
+        const item = {
+          id: wo.id,
+          woNumber: wo.woNumber,
+          title: wo.description,
+          vendor: wo.vendor?.businessName || 'Unknown Vendor',
+          status: wo.status,
+          tag: wo.status,
+          tagColor: wo.status === 'COMPLETED' ? 'success' : wo.status === 'IN_PROGRESS' ? 'info' : 'warning',
+          meta: new Date(wo.createdAt).toLocaleDateString()
+        };
+        if (wo.status === 'COMPLETED' || wo.status === 'CANCELLED') {
+          newColumns.completed.items.push(item);
+        } else if (wo.status === 'IN_PROGRESS' || wo.status === 'ON_HOLD') {
+          newColumns.inProgress.items.push(item);
+        } else {
+          newColumns.todo.items.push(item);
+        }
+      });
+      setColumns(newColumns);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDrop = async (colKey) => {
+    if (!dragItem) return;
+    const { id, item } = dragItem;
+    let newStatus = 'DRAFT';
+    if (colKey === 'inProgress') newStatus = 'IN_PROGRESS';
+    if (colKey === 'completed') newStatus = 'COMPLETED';
+
+    try {
+      const token = localStorage.getItem("adminToken");
+      const res = await fetch(`http://localhost:5000/api/v1/work-orders/${id}/status`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      
+      setColumns((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((k) => {
+          next[k] = { ...next[k], items: next[k].items.filter((i) => i.id !== id) };
+        });
+        next[colKey] = { ...next[colKey], items: [...next[colKey].items, { ...item, status: newStatus, tag: newStatus, tagColor: newStatus === 'COMPLETED' ? 'success' : 'info' }] };
+        return next;
+      });
+    } catch (err) {
+      alert(err.message);
+    }
     setDragItem(null);
   };
+
+  if (loading) return <AdminLayout><div style={{ padding: 40 }}>Loading work orders...</div></AdminLayout>;
+  if (error) return <AdminLayout><div style={{ padding: 40, color: 'red' }}>Error: {error}</div></AdminLayout>;
 
   return (
     <AdminLayout searchPlaceholder="Search work orders...">
       <div className="admin-page admin-wo-kanban">
       <PageHeader
         title="Work Order Management"
-        subtitle="Gala 2026: Grand Ballroom Preparation Phase"
+        subtitle="Manage and track vendor assignments."
         actions={
           <>
-            <button className="admin-btn admin-btn--outline">Filter View</button>
             <button className="admin-btn admin-btn--primary">+ Assign Task</button>
           </>
         }
@@ -96,28 +142,9 @@ const AdminWorkOrderKanban = () => {
                 >
                   <span className={`admin-wo-kanban__tag admin-wo-kanban__tag--${item.tagColor}`}>{item.tag}</span>
                   <p className={`admin-wo-kanban__card-title${key === "completed" ? " admin-wo-kanban__card-title--done" : ""}`}>
-                    {item.title}
+                    [{item.woNumber}] {item.title}
                   </p>
                   <p className="admin-wo-kanban__card-vendor">👤 {item.vendor}</p>
-
-                  {item.progress != null && (
-                    <>
-                      <div className="admin-wo-kanban__progress-track">
-                        <div style={{ width: `${item.progress}%` }} />
-                      </div>
-                      <p className="admin-wo-kanban__progress-label">{item.progress}% Completed</p>
-                      <button
-                        className="admin-btn admin-btn--danger"
-                        style={{ width: "100%" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDrop("completed");
-                        }}
-                      >
-                        Mark Complete
-                      </button>
-                    </>
-                  )}
 
                   {item.meta && key === "todo" && (
                     <div className="admin-wo-kanban__card-footer">
@@ -133,9 +160,6 @@ const AdminWorkOrderKanban = () => {
                         >
                           Details
                         </button>
-                        <button className="admin-wo-kanban__icon-btn" onClick={(e) => e.stopPropagation()}>
-                          💬
-                        </button>
                       </div>
                     </div>
                   )}
@@ -143,21 +167,15 @@ const AdminWorkOrderKanban = () => {
                   {item.meta && key === "completed" && (
                     <>
                       <p className="admin-wo-kanban__card-time admin-wo-kanban__card-time--done">✓ {item.meta}</p>
-                      <button className="admin-btn admin-btn--outline" style={{ width: "100%" }}>
-                        View Report
-                      </button>
                     </>
                   )}
                 </div>
               ))}
+              {col.items.length === 0 && <div style={{ color: '#6b7280', fontSize: 13, textAlign: 'center', marginTop: 20 }}>Drop here</div>}
             </div>
           </div>
         ))}
       </div>
-
-      <button className="admin-fab" aria-label="Assign task">
-        📝
-      </button>
     </div>
     </AdminLayout>
   );

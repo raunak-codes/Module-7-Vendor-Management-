@@ -1,29 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input } from 'antd';
 import { SearchOutlined, FilterOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons';
 
-const stats = [
-  { label: 'Total Paid', value: '₹ 2.45L', icon: 'payments', iconBg: '#f0fdf4', iconColor: '#16a34a' },
-  { label: 'Pending Amount', value: '₹ 34,200', icon: 'pending_actions', iconBg: '#fffbeb', iconColor: '#d97706' },
-  { label: 'Invoices Issued', value: '128', icon: 'description', iconBg: '#eff6ff', iconColor: '#2563eb' },
-];
-
-const payments = [
-  { id: '#INV-2024-990', recipient: 'Royal Wedding Gala', initials: 'RW', date: 'Oct 24, 2024', amount: '₹ 1,20,000', status: 'Paid' },
-  { id: '#INV-2024-991', recipient: 'Corporate Conclave', initials: 'CC', date: 'Oct 22, 2024', amount: '₹ 45,000', status: 'Pending' },
-  { id: '#INV-2024-988', recipient: 'Amara Hotel Series', initials: 'AH', date: 'Oct 18, 2024', amount: '₹ 85,000', status: 'Paid' },
-  { id: '#INV-2024-985', recipient: 'Elite Fashion Week', initials: 'EF', date: 'Oct 12, 2024', amount: '₹ 2,10,000', status: 'Paid' },
-  { id: '#INV-2024-982', recipient: 'Summit 360 Event', initials: 'SM', date: 'Oct 05, 2024', amount: '₹ 12,000', status: 'Overdue' },
-];
-
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, { bg: string; color: string; dot: string }> = {
-    Paid: { bg: '#f0fdf4', color: '#15803d', dot: '#22c55e' },
-    Pending: { bg: '#fffbeb', color: '#d97706', dot: '#f59e0b' },
-    Overdue: { bg: '#fef2f2', color: '#dc2626', dot: '#ef4444' },
+    PAID: { bg: '#f0fdf4', color: '#15803d', dot: '#22c55e' },
+    SUBMITTED: { bg: '#fffbeb', color: '#d97706', dot: '#f59e0b' },
+    OVERDUE: { bg: '#fef2f2', color: '#dc2626', dot: '#ef4444' },
+    DRAFT: { bg: '#f3f4f6', color: '#374151', dot: '#9ca3af' },
   };
-  const s = styles[status] || styles.Pending;
+  const s = styles[status] || styles.SUBMITTED;
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -39,6 +26,35 @@ function StatusBadge({ status }: { status: string }) {
 export default function PaymentHistory() {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
+  const [invoices, setInvoices] = useState([]);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
+  const fetchInvoices = async () => {
+    try {
+      const token = localStorage.getItem('vendorToken');
+      const res = await fetch('http://localhost:5000/api/v1/invoices', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setInvoices(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const totalPaid = invoices.filter(i => i.status === 'PAID').reduce((acc, i) => acc + parseFloat(i.totalAmount || 0), 0);
+  const pendingAmount = invoices.filter(i => i.status === 'SUBMITTED').reduce((acc, i) => acc + parseFloat(i.totalAmount || 0), 0);
+
+  const stats = [
+    { label: 'Total Paid', value: `INR ${totalPaid.toLocaleString()}`, icon: 'payments', iconBg: '#f0fdf4', iconColor: '#16a34a' },
+    { label: 'Pending Amount', value: `INR ${pendingAmount.toLocaleString()}`, icon: 'pending_actions', iconBg: '#fffbeb', iconColor: '#d97706' },
+    { label: 'Invoices Issued', value: invoices.length.toString(), icon: 'description', iconBg: '#eff6ff', iconColor: '#2563eb' },
+  ];
 
   return (
     <div style={{ maxWidth: 1400, margin: '0 auto' }}>
@@ -103,13 +119,13 @@ export default function PaymentHistory() {
               <FilterOutlined style={{ color: 'var(--secondary)' }} />
             </button>
           </div>
-          <p style={{ fontSize: 12, color: 'var(--secondary)' }}>Showing 1-10 of 128 results</p>
+          <p style={{ fontSize: 12, color: 'var(--secondary)' }}>Showing {invoices.length} results</p>
         </div>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: 'var(--surface-container-low)', borderBottom: '1px solid var(--surface-container)' }}>
-              {['Invoice ID', 'Recipient', 'Date Issued', 'Amount', 'Status', 'Actions'].map((h, i) => (
+              {['Invoice ID', 'PO Ref', 'Date Issued', 'Amount', 'Status', 'Actions'].map((h, i) => (
                 <th key={h} style={{
                   padding: '16px 24px',
                   textAlign: i === 5 ? 'right' : 'left',
@@ -120,26 +136,21 @@ export default function PaymentHistory() {
             </tr>
           </thead>
           <tbody>
-            {payments.map((p, i) => (
-              <tr key={i}
+            {invoices.length === 0 && (
+              <tr><td colSpan={6} style={{ padding: '20px 24px', textAlign: 'center' }}>No invoices found.</td></tr>
+            )}
+            {invoices.map((p, i) => (
+              <tr key={p.id}
                 style={{ borderBottom: '1px solid var(--surface-container)', transition: 'background 0.15s' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-container-low)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <td style={{ padding: '20px 24px', fontWeight: 600, color: 'var(--primary)', fontSize: 14 }}>{p.id}</td>
+                <td style={{ padding: '20px 24px', fontWeight: 600, color: 'var(--primary)', fontSize: 14 }}>{p.invoiceNumber}</td>
                 <td style={{ padding: '20px 24px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: 32, height: 32, borderRadius: '50%',
-                      background: 'var(--secondary-container)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      color: 'var(--primary)', fontWeight: 700, fontSize: 10,
-                    }}>{p.initials}</div>
-                    <span style={{ fontSize: 14, color: 'var(--on-surface)' }}>{p.recipient}</span>
-                  </div>
+                  <span style={{ fontSize: 14, color: 'var(--on-surface)' }}>{p.purchaseOrder?.poNumber || 'General'}</span>
                 </td>
-                <td style={{ padding: '20px 24px', fontSize: 14, color: 'var(--secondary)' }}>{p.date}</td>
-                <td style={{ padding: '20px 24px', fontSize: 14, fontWeight: 700, color: 'var(--on-surface)' }}>{p.amount}</td>
+                <td style={{ padding: '20px 24px', fontSize: 14, color: 'var(--secondary)' }}>{new Date(p.createdAt).toLocaleDateString()}</td>
+                <td style={{ padding: '20px 24px', fontSize: 14, fontWeight: 700, color: 'var(--on-surface)' }}>{p.currency} {parseFloat(p.totalAmount).toLocaleString()}</td>
                 <td style={{ padding: '20px 24px' }}>
                   <StatusBadge status={p.status} />
                 </td>
@@ -172,16 +183,12 @@ export default function PaymentHistory() {
             Previous
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
-            {[1, 2, 3].map((p) => (
-              <button key={p} onClick={() => setCurrentPage(p)} style={{
-                width: 40, height: 40, borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: p === currentPage ? 'var(--primary)' : 'transparent',
-                color: p === currentPage ? '#fff' : 'var(--secondary)',
-                fontWeight: p === currentPage ? 700 : 400, fontSize: 14,
-              }}>{p}</button>
-            ))}
-            <span style={{ display: 'flex', alignItems: 'center', padding: '0 8px', color: 'var(--secondary)' }}>...</span>
-            <button style={{ width: 40, height: 40, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--secondary)', fontSize: 14 }}>12</button>
+            <button style={{
+              width: 40, height: 40, borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: 'var(--primary)',
+              color: '#fff',
+              fontWeight: 700, fontSize: 14,
+            }}>1</button>
           </div>
           <button style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',
@@ -213,7 +220,7 @@ export default function PaymentHistory() {
         <div style={{ height: 256, borderRadius: 16, overflow: 'hidden', boxShadow: '0 8px 40px rgba(0,0,0,0.12)', border: '1px solid var(--surface-container-highest)', position: 'relative', background: 'linear-gradient(135deg, #1a1a2e 0%, #851217 100%)' }}>
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)' }} />
           <div style={{ position: 'absolute', bottom: 24, left: 24, color: '#fff' }}>
-            <p style={{ fontSize: 30, fontWeight: 700, fontFamily: 'Manrope' }}>₹ 14.8M</p>
+            <p style={{ fontSize: 30, fontWeight: 700, fontFamily: 'Manrope' }}>₹ {(totalPaid + pendingAmount).toLocaleString()}</p>
             <p style={{ fontSize: 11, opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 4 }}>Total Managed Assets 2024</p>
           </div>
         </div>

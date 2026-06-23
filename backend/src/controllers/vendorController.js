@@ -88,4 +88,50 @@ const rejectVendor = async (req, res, next) => {
   }
 };
 
-module.exports = { getMe, updateMe, getAllVendors, getVendorById, getPendingVendors, approveVendor, rejectVendor };
+const getVendorDashboard = async (req, res, next) => {
+  try {
+    const vendorId = req.user.vendorId;
+    if (!vendorId) return res.status(404).json({ message: 'Vendor not found' });
+
+    const activeWorkOrders = await prisma.workOrder.count({ where: { vendorId, status: { in: ['ASSIGNED', 'IN_PROGRESS'] } } });
+    
+    // Total unpaid/pending payments
+    const pendingInvoices = await prisma.vendorInvoice.aggregate({
+      where: { vendorId, status: 'SUBMITTED' },
+      _sum: { totalAmount: true }
+    });
+    const pendingAmount = pendingInvoices._sum.totalAmount || 0;
+
+    // Recent activity (Last 3 Work orders or invoices)
+    const recentActivity = await prisma.workOrder.findMany({
+      where: { vendorId },
+      orderBy: { updatedAt: 'desc' },
+      take: 3,
+      select: { woNumber: true, description: true, status: true, updatedAt: true }
+    });
+
+    const vendorRatingAgg = await prisma.vendorRating.aggregate({
+      where: { vendorId },
+      _avg: { rating: true }
+    });
+    const rating = vendorRatingAgg._avg.rating || 0;
+
+    res.status(200).json({
+      data: {
+        activeWorkOrders,
+        pendingAmount,
+        rating,
+        recentActivity: recentActivity.map(wo => ({
+          title: `Work Order ${wo.woNumber}`,
+          sub: wo.description,
+          status: wo.status,
+          date: new Date(wo.updatedAt).toLocaleDateString()
+        }))
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getMe, updateMe, getVendorDashboard, getAllVendors, getVendorById, getPendingVendors, approveVendor, rejectVendor };

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import PageHeader from "../../components/PageHeader";
 import "./admin-tokens.css";
@@ -21,12 +22,6 @@ const SPEND_LINE_POINTS = [
 ];
 
 const SPEND_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-
-const CATEGORY_SPEND = [
-  { label: "Venues", color: "var(--admin-primary)", value: "$428.5k" },
-  { label: "Production", color: "var(--admin-secondary)", value: "$215.2k" },
-  { label: "Catering", color: "#caa802", value: "$182.1k" },
-];
 
 const VENDOR_PERFORMANCE = [
   { name: "Luxe Events Production", score: 98 },
@@ -58,6 +53,32 @@ const SLA_ROWS = [
 ];
 
 export default function AdminAnalyticsDashboard() {
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch('http://localhost:5000/api/v1/admin/analytics', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const getColors = (idx) => {
+    const colors = ["var(--admin-primary)", "var(--admin-secondary)", "#caa802", "#1f8b4c"];
+    return colors[idx % colors.length];
+  };
+
   return (
     <AdminLayout searchPlaceholder="Search analytics or reports...">
       <div className="admin-page admin-analytics-page">
@@ -143,19 +164,21 @@ export default function AdminAnalyticsDashboard() {
             <div className="admin-analytics__donut-wrap">
               <div className="admin-analytics__donut">
                 <div className="admin-analytics__donut-center">
-                  <span className="font-display-lg">42%</span>
-                  <span className="font-label-sm">Venues</span>
+                  <span className="font-display-lg">{stats?.totalVendors || 0}</span>
+                  <span className="font-label-sm">Vendors Total</span>
                 </div>
               </div>
               <div className="admin-analytics__cat-list">
-                {CATEGORY_SPEND.map((cat) => (
+                {stats?.categorySpend && stats.categorySpend.length > 0 ? stats.categorySpend.map((cat, idx) => (
                   <div key={cat.label} className="admin-analytics__cat-row font-body-md">
                     <span className="admin-analytics__cat-label">
-                      <span className="admin-analytics__dot" style={{ background: cat.color }} /> {cat.label}
+                      <span className="admin-analytics__dot" style={{ background: getColors(idx) }} /> {cat.label}
                     </span>
-                    <strong>{cat.value}</strong>
+                    <strong>INR {cat.value.toLocaleString()}</strong>
                   </div>
-                ))}
+                )) : (
+                  <div style={{ color: '#6b7280', fontSize: 13 }}>No paid invoices to calculate spend.</div>
+                )}
               </div>
             </div>
           </div>

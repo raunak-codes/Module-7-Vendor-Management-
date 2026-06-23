@@ -1,30 +1,12 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Tag } from 'antd';
 import { RiseOutlined } from '@ant-design/icons';
-
-const metricCards = [
-  { label: 'Active Orders', value: '12', trend: '+8%', trendColor: 'var(--tertiary)', icon: 'trending_up', borderColor: 'var(--primary)' },
-  { label: 'Upcoming Events', value: '03', icon: 'event', borderColor: 'transparent' },
-  { label: 'Pending Payments', value: '₹ 45k', subLabel: 'Due soon', subColor: 'var(--error)', borderColor: 'transparent' },
-  { label: 'Vendor Rating', value: '4.8', subLabel: '/5', borderColor: 'transparent', isRating: true },
-];
-
-const opportunityCards = [
-  { label: 'Available Opportunities', value: '12', icon: 'campaign', borderColor: 'var(--tertiary)' },
-  { label: 'My Submitted Proposals', value: '5', icon: 'description', borderColor: 'var(--secondary)' },
-  { label: 'Won Contracts', value: '2', icon: 'workspace_premium', borderColor: 'var(--primary)' },
-];
 
 const events = [
   { name: 'Corporate Summit 2025', location: 'Mumbai', date: '15 Sept', budget: '₹15,00,000', services: 'Catering, Photography, AV Setup', status: 'Open for Bidding', statusColor: '#6ffbbe', statusTextColor: '#002113' },
   { name: 'Luxury Wedding Expo', location: 'Delhi', date: '28 Sept', budget: '₹8,00,000', services: 'Decor, Lighting, Hospitality', status: 'Closing Soon', statusColor: '#d9e3f4', statusTextColor: '#121c28' },
   { name: 'Product Launch Event', location: 'Bangalore', date: '10 Oct', budget: '₹12,00,000', services: 'Photography, Catering, Branding', status: 'Open for Bidding', statusColor: '#6ffbbe', statusTextColor: '#002113' },
-];
-
-const recentActivity = [
-  { date: 'Oct 24, 2023', title: 'PO #8822 Accepted', sub: 'Royal Wedding Hall Setup', status: 'Success', statusBg: '#6ffbbe', statusText: '#002113', dotColor: 'var(--tertiary)' },
-  { date: 'Oct 23, 2023', title: 'Invoice #112 Submitted', sub: 'Catering - Corporate Gala', status: 'Pending', statusBg: '#d9e3f4', statusText: '#121c28', dotColor: 'var(--secondary)' },
-  { date: 'Oct 21, 2023', title: 'New Work Order #554', sub: 'Lighting Maintenance - Main Ballroom', status: 'Action Required', statusBg: '#ffdad7', statusText: '#410004', dotColor: 'var(--primary)' },
 ];
 
 const schedule = [
@@ -34,6 +16,49 @@ const schedule = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [dashboardData, setDashboardData] = useState({
+    activeWorkOrders: 0,
+    pendingAmount: 0,
+    rating: 0,
+    recentActivity: []
+  });
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const fetchDashboard = async () => {
+    try {
+      const token = localStorage.getItem('vendorToken');
+      const res = await fetch('http://localhost:5000/api/v1/vendors/me/dashboard', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setDashboardData({
+          activeWorkOrders: data.activeWorkOrders || 0,
+          pendingAmount: data.pendingAmount || 0,
+          rating: data.rating || 0,
+          recentActivity: data.recentActivity || []
+        });
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const metricCards = [
+    { label: 'Active Work Orders', value: dashboardData.activeWorkOrders.toString(), trend: '', icon: 'trending_up', borderColor: 'var(--primary)' },
+    { label: 'Upcoming Events', value: '03', icon: 'event', borderColor: 'transparent' }, // Dummy events since no event schema
+    { label: 'Pending Payments', value: `₹ ${parseFloat(dashboardData.pendingAmount).toLocaleString()}`, subLabel: 'Due soon', subColor: 'var(--error)', borderColor: 'transparent' },
+    { label: 'Vendor Rating', value: parseFloat(dashboardData.rating).toFixed(1), subLabel: '/5', borderColor: 'transparent', isRating: true },
+  ];
+
+  const opportunityCards = [
+    { label: 'Available Opportunities', value: '3', icon: 'campaign', borderColor: 'var(--tertiary)' }, // Hardcoded mapping to Events above
+    { label: 'My Submitted Proposals', value: '0', icon: 'description', borderColor: 'var(--secondary)' },
+    { label: 'Won Contracts', value: '0', icon: 'workspace_premium', borderColor: 'var(--primary)' },
+  ];
 
   return (
     <div>
@@ -162,7 +187,10 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {recentActivity.map((row, i) => (
+              {dashboardData.recentActivity.length === 0 && (
+                <tr><td colSpan={4} style={{ padding: '20px 24px', textAlign: 'center' }}>No recent activity found.</td></tr>
+              )}
+              {dashboardData.recentActivity.map((row, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid var(--surface-container)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-container-lowest)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
@@ -176,10 +204,10 @@ export default function Dashboard() {
                     <span style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '3px 10px', borderRadius: 9999,
-                      background: row.statusBg, color: row.statusText,
+                      background: '#d9e3f4', color: '#121c28',
                       fontSize: 12, fontWeight: 600,
                     }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: row.dotColor, display: 'inline-block' }} />
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--secondary)', display: 'inline-block' }} />
                       {row.status}
                     </span>
                   </td>

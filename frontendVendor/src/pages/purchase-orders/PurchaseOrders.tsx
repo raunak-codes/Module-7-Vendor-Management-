@@ -1,29 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Input } from 'antd';
-import { SearchOutlined, FilterOutlined, PlusOutlined } from '@ant-design/icons';
-
-const stats = [
-  { label: 'Total POs', value: '142', trend: '+12%', trendColor: 'var(--tertiary)', icon: 'receipt_long', iconBg: 'rgba(0,77,51,0.1)', iconColor: 'var(--tertiary)' },
-  { label: 'Pending Approval', value: '18', trend: 'Active', trendColor: 'var(--secondary)', icon: 'pending_actions', iconBg: '#fff7ed', iconColor: '#c2410c' },
-  { label: 'Accepted', value: '115', trend: 'Resolved', trendColor: 'var(--tertiary)', icon: 'check_circle', iconBg: '#f0fdf4', iconColor: '#15803d' },
-  { label: 'Total Amount', value: '$42,500', trend: 'USD', trendColor: 'var(--secondary)', icon: 'payments', iconBg: '#fef2f2', iconColor: 'var(--primary)' },
-];
-
-const orders = [
-  { id: '#PO-2024-001', date: 'Oct 12, 2024', eventName: 'Grand Wedding - Hall A', icon: 'celebration', amount: '₹ 50,000', status: 'Pending' },
-  { id: '#PO-2024-002', date: 'Oct 14, 2024', eventName: 'Tech Summit 2024', icon: 'business', amount: '$ 12,400', status: 'Accepted' },
-  { id: '#PO-2024-003', date: 'Oct 15, 2024', eventName: 'Charity Gala Dinner', icon: 'dinner_dining', amount: '$ 8,200', status: 'Pending' },
-  { id: '#PO-2024-004', date: 'Oct 18, 2024', eventName: 'Fashion Week After-Party', icon: 'nightlife', amount: '$ 15,000', status: 'Accepted' },
-];
+import { Button } from 'antd';
+import { FilterOutlined, PlusOutlined } from '@ant-design/icons';
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, { bg: string; color: string; dot: string }> = {
-    Pending: { bg: '#fff7ed', color: '#c2410c', dot: '#f97316' },
-    Accepted: { bg: '#f0fdf4', color: '#15803d', dot: '#22c55e' },
-    Rejected: { bg: '#fef2f2', color: '#dc2626', dot: '#ef4444' },
+    DRAFT: { bg: '#fff7ed', color: '#c2410c', dot: '#f97316' },
+    ISSUED: { bg: '#e0f2fe', color: '#0369a1', dot: '#38bdf8' },
+    ACCEPTED: { bg: '#f0fdf4', color: '#15803d', dot: '#22c55e' },
+    REJECTED: { bg: '#fef2f2', color: '#dc2626', dot: '#ef4444' },
+    PARTIAL_FULFILLED: { bg: '#fef3c7', color: '#b45309', dot: '#fbbf24' },
+    FULFILLED: { bg: '#f0fdf4', color: '#15803d', dot: '#22c55e' },
+    CANCELLED: { bg: '#f3f4f6', color: '#374151', dot: '#9ca3af' },
   };
-  const s = styles[status] || styles.Pending;
+  const s = styles[status] || styles.DRAFT;
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -39,6 +29,57 @@ function StatusBadge({ status }: { status: string }) {
 export default function PurchaseOrders() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      const token = localStorage.getItem('vendorToken');
+      const res = await fetch('http://localhost:5000/api/v1/purchase-orders', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setOrders(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleUpdateStatus = async (id, status, e) => {
+    e.stopPropagation();
+    try {
+      const token = localStorage.getItem('vendorToken');
+      const res = await fetch(`http://localhost:5000/api/v1/purchase-orders/${id}/status`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ status })
+      });
+      if (res.ok) {
+        fetchOrders();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const totalAmount = orders.reduce((acc, o) => acc + parseFloat(o.totalAmount || 0), 0);
+  const acceptedCount = orders.filter(o => o.status === 'ACCEPTED').length;
+  const pendingCount = orders.filter(o => o.status === 'ISSUED').length;
+
+  const stats = [
+    { label: 'Total POs', value: orders.length.toString(), trend: '', trendColor: 'var(--tertiary)', icon: 'receipt_long', iconBg: 'rgba(0,77,51,0.1)', iconColor: 'var(--tertiary)' },
+    { label: 'Pending Action', value: pendingCount.toString(), trend: '', trendColor: 'var(--secondary)', icon: 'pending_actions', iconBg: '#fff7ed', iconColor: '#c2410c' },
+    { label: 'Accepted', value: acceptedCount.toString(), trend: '', trendColor: 'var(--tertiary)', icon: 'check_circle', iconBg: '#f0fdf4', iconColor: '#15803d' },
+    { label: 'Total Amount', value: `INR ${totalAmount.toLocaleString()}`, trend: '', trendColor: 'var(--secondary)', icon: 'payments', iconBg: '#fef2f2', iconColor: 'var(--primary)' },
+  ];
 
   return (
     <div>
@@ -86,7 +127,7 @@ export default function PurchaseOrders() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'rgba(243,244,245,0.5)', borderBottom: '1px solid var(--surface-container)' }}>
-                {['PO ID', 'Event Name', 'Amount', 'Status', 'Actions'].map((h, i) => (
+                {['PO ID', 'Event Ref', 'Amount', 'Status', 'Actions'].map((h, i) => (
                   <th key={h} style={{
                     padding: '16px 24px', textAlign: i === 4 ? 'right' : 'left',
                     fontSize: 11, fontWeight: 600, color: 'var(--secondary)',
@@ -96,16 +137,19 @@ export default function PurchaseOrders() {
               </tr>
             </thead>
             <tbody>
+              {orders.length === 0 && (
+                <tr><td colSpan={5} style={{ padding: '20px 24px', textAlign: 'center' }}>No purchase orders found.</td></tr>
+              )}
               {orders.map((order, i) => (
-                <tr key={i}
+                <tr key={order.id}
                   style={{ borderBottom: '1px solid var(--surface-container)', cursor: 'pointer', transition: 'background 0.15s' }}
                   onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--surface-container-low)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  onClick={() => navigate(`/purchase-orders/${order.id.replace('#', '')}`)}
+                  onClick={() => navigate(`/purchase-orders/${order.id}`)}
                 >
                   <td style={{ padding: '20px 24px' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--on-surface)', fontSize: 14 }}>{order.id}</span>
-                    <p style={{ fontSize: 12, color: 'var(--secondary)', marginTop: 2 }}>{order.date}</p>
+                    <span style={{ fontWeight: 600, color: 'var(--on-surface)', fontSize: 14 }}>{order.poNumber}</span>
+                    <p style={{ fontSize: 12, color: 'var(--secondary)', marginTop: 2 }}>{new Date(order.createdAt).toLocaleDateString()}</p>
                   </td>
                   <td style={{ padding: '20px 24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -115,26 +159,26 @@ export default function PurchaseOrders() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         color: i % 2 === 0 ? 'var(--primary)' : 'var(--secondary)',
                       }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{order.icon}</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>business</span>
                       </div>
-                      <span style={{ fontWeight: 500, color: 'var(--on-surface)', fontSize: 14 }}>{order.eventName}</span>
+                      <span style={{ fontWeight: 500, color: 'var(--on-surface)', fontSize: 14 }}>{order.eventId || 'General'}</span>
                     </div>
                   </td>
-                  <td style={{ padding: '20px 24px', fontWeight: 600, color: 'var(--on-surface)', fontSize: 14 }}>{order.amount}</td>
+                  <td style={{ padding: '20px 24px', fontWeight: 600, color: 'var(--on-surface)', fontSize: 14 }}>{order.currency} {parseFloat(order.totalAmount).toLocaleString()}</td>
                   <td style={{ padding: '20px 24px' }}>
                     <StatusBadge status={order.status} />
                   </td>
                   <td style={{ padding: '20px 24px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
                       <button style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, color: 'var(--secondary)', background: 'none', border: 'none', cursor: 'pointer' }}
-                        onClick={() => navigate(`/purchase-orders/${order.id.replace('#', '')}`)}>View</button>
-                      {order.status === 'Pending' && (
+                        onClick={() => navigate(`/purchase-orders/${order.id}`)}>View</button>
+                      {order.status === 'ISSUED' && (
                         <>
-                          <button style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', background: 'rgba(133,18,23,0.05)', border: '1px solid rgba(133,18,23,0.2)', borderRadius: 6, cursor: 'pointer' }}>Accept</button>
-                          <button style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}>Reject</button>
+                          <button onClick={(e) => handleUpdateStatus(order.id, 'ACCEPTED', e)} style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, color: 'var(--primary)', background: 'rgba(133,18,23,0.05)', border: '1px solid rgba(133,18,23,0.2)', borderRadius: 6, cursor: 'pointer' }}>Accept</button>
+                          <button onClick={(e) => handleUpdateStatus(order.id, 'REJECTED', e)} style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, color: 'var(--error)', background: 'none', border: 'none', cursor: 'pointer' }}>Reject</button>
                         </>
                       )}
-                      {order.status === 'Accepted' && (
+                      {order.status === 'ACCEPTED' && (
                         <button style={{ padding: '6px 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--secondary)' }}>
                           <span className="material-symbols-outlined" style={{ fontSize: 20 }}>more_vert</span>
                         </button>
@@ -154,22 +198,12 @@ export default function PurchaseOrders() {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <p style={{ fontSize: 12, color: 'var(--secondary)' }}>
-            Showing <strong style={{ color: 'var(--on-surface)' }}>1-4</strong> of 142 results
+            Showing <strong style={{ color: 'var(--on-surface)' }}>{orders.length}</strong> results
           </p>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--secondary)', opacity: 0.3 }} disabled>
+            <button style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--secondary)' }}>
               <span className="material-symbols-outlined">chevron_left</span>
             </button>
-            {[1, 2, 3].map((p) => (
-              <button key={p} onClick={() => setPage(p)} style={{
-                width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: p === page ? 'var(--primary)' : 'transparent',
-                color: p === page ? '#fff' : 'var(--secondary)',
-                fontWeight: p === page ? 700 : 400, fontSize: 12,
-              }}>{p}</button>
-            ))}
-            <span style={{ color: 'var(--secondary)', fontSize: 14 }}>...</span>
-            <button style={{ width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--secondary)', fontSize: 12 }}>36</button>
             <button style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--secondary)' }}>
               <span className="material-symbols-outlined">chevron_right</span>
             </button>

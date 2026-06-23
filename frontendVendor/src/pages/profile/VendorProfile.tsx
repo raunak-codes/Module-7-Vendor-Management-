@@ -1,33 +1,45 @@
+import { useState, useEffect } from 'react';
 import { Button } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 
-const profileSections = [
-  {
-    title: 'Company Information',
-    icon: 'business',
-    iconBg: 'rgba(133,18,23,0.1)',
-    iconColor: 'var(--primary)',
-    fields: [
-      { label: 'Company Name', value: 'Elite Catering & Event Design' },
-      { label: 'Registration Number', value: 'ECED-99283-BH' },
-      { label: 'Primary Contact Person', value: 'Julian Thorne' },
-    ],
-  },
-];
-
-const services = [
-  { icon: 'restaurant', label: 'Primary: Catering', primary: true },
-  { icon: 'celebration', label: 'Secondary: Decoration', primary: false },
-  { icon: 'audiotrack', label: 'AV & Sound', primary: false },
-];
-
-const contactDetails = [
-  { icon: 'mail', label: 'Email Address', value: 'vendor@example.com' },
-  { icon: 'call', label: 'Phone Number', value: '+91 9988776655' },
-  { icon: 'location_on', label: 'Headquarters', value: 'Mayfair, London, UK' },
-];
-
 export default function VendorProfile() {
+  const [profile, setProfile] = useState(null);
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem('vendorToken');
+      const res = await fetch('http://localhost:5000/api/v1/vendors/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const companyName = profile?.businessName || 'Elite Catering & Event Design';
+  const regNumber = profile?.registrationNumber || 'ECED-99283-BH';
+  const primaryContact = profile?.user?.email || 'Vendor Contact';
+  
+  const services = [
+    { icon: 'restaurant', label: profile?.category?.name || 'Primary Service', primary: true },
+    { icon: 'celebration', label: 'Secondary: Event Management', primary: false },
+    { icon: 'audiotrack', label: 'Support Services', primary: false },
+  ];
+
+  const contactDetails = [
+    { icon: 'mail', label: 'Email Address', value: profile?.user?.email || 'vendor@example.com' },
+    { icon: 'call', label: 'Phone Number', value: profile?.contactPhone || '+91 9988776655' },
+    { icon: 'location_on', label: 'Headquarters', value: 'Mayfair, London, UK' },
+  ];
+
   return (
     <div>
       {/* Page Header */}
@@ -56,9 +68,9 @@ export default function VendorProfile() {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {[
-              { label: 'Company Name', value: 'Elite Catering & Event Design' },
-              { label: 'Registration Number', value: 'ECED-99283-BH' },
-              { label: 'Primary Contact Person', value: 'Julian Thorne' },
+              { label: 'Company Name', value: companyName },
+              { label: 'Registration Number', value: regNumber },
+              { label: 'Primary Contact Person', value: primaryContact },
             ].map((field) => (
               <div key={field.label}>
                 <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--secondary)', marginBottom: 4 }}>{field.label}</p>

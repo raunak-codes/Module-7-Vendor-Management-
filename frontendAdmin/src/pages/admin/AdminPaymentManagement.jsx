@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
@@ -13,13 +13,6 @@ import "./AdminPaymentManagement.css";
  * Matches Stitch screen: payment_management
  */
 
-const TRANSACTIONS = [
-  { id: "#PMT-99281", initials: "LS", vendor: "Luxe Soundscapes", category: "Audio/Visual", amount: "$12,500.00", date: "Oct 24, 2026", status: "paid" },
-  { id: "#PMT-99275", initials: "RC", vendor: "Ritz Catering Co.", category: "Food & Beverage", amount: "$45,000.00", date: "Oct 22, 2026", status: "pending" },
-  { id: "#PMT-99264", initials: "VF", vendor: "Velvet Floral Designs", category: "Decor", amount: "$3,400.00", date: "Oct 20, 2026", status: "failed" },
-  { id: "#PMT-99250", initials: "SM", vendor: "Securitas Mgmt", category: "Logistics", amount: "$8,200.00", date: "Oct 18, 2026", status: "paid" },
-];
-
 const TIMELINE = [
   { month: "May", actual: 60, projected: 75 },
   { month: "Jun", actual: 65, projected: 80 },
@@ -31,23 +24,22 @@ const TIMELINE = [
 ];
 
 const columns = [
-  { key: "id", header: "Payment ID", render: (r) => <span className="admin-payments__id">{r.id}</span> },
+  { key: "id", header: "Invoice/Payment ID", render: (r) => <span className="admin-payments__id">{r.invoiceNumber}</span> },
   {
     key: "vendor",
     header: "Vendor",
     render: (r) => (
       <div className="admin-payments__vendor">
-        <span className="admin-payments__avatar">{r.initials}</span>
+        <span className="admin-payments__avatar">{(r.vendor?.businessName || '?').substring(0, 2).toUpperCase()}</span>
         <div>
-          <p className="admin-payments__vendor-name">{r.vendor}</p>
-          <p className="admin-payments__vendor-cat">{r.category}</p>
+          <p className="admin-payments__vendor-name">{r.vendor?.businessName}</p>
         </div>
       </div>
     ),
   },
-  { key: "amount", header: "Amount", render: (r) => <strong>{r.amount}</strong> },
-  { key: "date", header: "Date" },
-  { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
+  { key: "amount", header: "Amount", render: (r) => <strong>{r.currency} {parseFloat(r.totalAmount).toLocaleString()}</strong> },
+  { key: "date", header: "Date", render: (r) => r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'N/A' },
+  { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status.toLowerCase()} label={r.status} /> },
   {
     key: "action",
     header: "Action",
@@ -62,6 +54,30 @@ const columns = [
 
 export default function AdminPaymentManagement() {
   const [page, setPage] = useState(1);
+  const [transactions, setTransactions] = useState([]);
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
+  const fetchInvoices = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch('http://localhost:5000/api/v1/invoices', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setTransactions(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const calculateTotal = (status) => {
+    return transactions.filter(t => t.status === status).reduce((acc, t) => acc + parseFloat(t.totalAmount), 0).toLocaleString();
+  };
 
   return (
     <AdminLayout searchPlaceholder="Search transactions, vendors or payment IDs...">
@@ -84,9 +100,9 @@ export default function AdminPaymentManagement() {
         />
 
         <div className="admin-payments__stats">
-          <StatCard label="Pending Settlements" value="$248,930.00" subValue="+12% vs last month" subValueType="warning" icon="pending_actions" accentLeft />
-          <StatCard label="Successfully Disbursed" value="$1,102,450.50" subValue="On Schedule" subValueType="success" icon="check_circle" accentLeft />
-          <StatCard label="Payment Failures" value="$12,400.00" subValue="Action Required" subValueType="error" icon="report" accentLeft />
+          <StatCard label="Pending Settlements" value={`INR ${calculateTotal('APPROVED')}`} subValue="Ready to Pay" subValueType="warning" icon="pending_actions" accentLeft />
+          <StatCard label="Successfully Disbursed" value={`INR ${calculateTotal('PAID')}`} subValue="Completed" subValueType="success" icon="check_circle" accentLeft />
+          <StatCard label="Payment Failures" value={`INR ${calculateTotal('REJECTED')}`} subValue="Action Required" subValueType="error" icon="report" accentLeft />
         </div>
 
         <div className="admin-card admin-payments__table-card">
@@ -103,21 +119,12 @@ export default function AdminPaymentManagement() {
           </div>
           <DataTable
             columns={columns}
-            data={TRANSACTIONS}
+            data={transactions}
             footer={
               <>
-                <span className="admin-payments__footer-text">Showing 4 of 248 transactions</span>
+                <span className="admin-payments__footer-text">Showing {transactions.length} transactions</span>
                 <div className="admin-vendor-dir__pagination">
                   <button onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</button>
-                  {[1, 2, 3].map((p) => (
-                    <button
-                      key={p}
-                      className={p === page ? "admin-vendor-dir__page--active" : ""}
-                      onClick={() => setPage(p)}
-                    >
-                      {p}
-                    </button>
-                  ))}
                   <button onClick={() => setPage((p) => Math.min(3, p + 1))}>Next</button>
                 </div>
               </>

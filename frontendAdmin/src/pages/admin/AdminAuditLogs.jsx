@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "../../layouts/AdminLayout";
 import PageHeader from "../../components/PageHeader";
 import StatCard from "../../components/StatCard";
@@ -13,70 +13,23 @@ import "./AdminAuditLogs.css";
  * Matches Stitch screen: audit_logs
  */
 
-const LOGS = [
-  {
-    id: "L-1",
-    timestamp: "Oct 24, 2026\n14:22:15",
-    initials: "JW",
-    admin: "James Wilson",
-    role: "Admin Level 2",
-    action: "Approved high-value Purchase Order",
-    target: "PO-2026-8842",
-    ip: "192.168.1.45",
-    status: "success",
-  },
-  {
-    id: "L-2",
-    timestamp: "Oct 24, 2026\n13:58:02",
-    initials: "SC",
-    admin: "Sarah Chen",
-    role: "System Auditor",
-    action: "Updated KYC documents for Vendor",
-    target: "Luminary Events Ltd.",
-    ip: "10.0.4.122",
-    status: "success",
-  },
-  {
-    id: "L-3",
-    timestamp: "Oct 24, 2026\n12:15:33",
-    initials: "JW",
-    admin: "James Wilson",
-    role: "Admin Level 2",
-    action: "Manual override of payment threshold",
-    target: "Global Logistics",
-    ip: "192.168.1.45",
-    status: "flagged",
-  },
-  {
-    id: "L-4",
-    timestamp: "Oct 24, 2026\n11:45:01",
-    initials: "AM",
-    admin: "Auto-Manager",
-    role: "System Script",
-    action: "Scheduled invoice generation",
-    target: "Multi-Target",
-    ip: "Internal (Loopback)",
-    status: "success",
-  },
-];
-
 const ACTIVITY_BARS = [40, 70, 30, 90, 55, 80, 35, 60];
 
 const columns = [
   {
     key: "timestamp",
     header: "Timestamp",
-    render: (r) => <span className="admin-audit__timestamp">{r.timestamp}</span>,
+    render: (r) => <span className="admin-audit__timestamp">{new Date(r.createdAt).toLocaleString()}</span>,
   },
   {
     key: "admin",
-    header: "Admin",
+    header: "Admin/User",
     render: (r) => (
       <div className="admin-audit__admin">
-        <span className="admin-audit__avatar">{r.initials}</span>
+        <span className="admin-audit__avatar">{(r.user?.name || '?').substring(0,2).toUpperCase()}</span>
         <div>
-          <p className="admin-audit__admin-name">{r.admin}</p>
-          <p className="admin-audit__admin-role">{r.role}</p>
+          <p className="admin-audit__admin-name">{r.user?.name || 'System'}</p>
+          <p className="admin-audit__admin-role">{r.user?.role || 'SYSTEM'}</p>
         </div>
       </div>
     ),
@@ -84,15 +37,35 @@ const columns = [
   { key: "action", header: "Action Description" },
   {
     key: "target",
-    header: "Target Vendor/PO",
-    render: (r) => <strong className="admin-audit__target">{r.target}</strong>,
+    header: "Target Entity ID",
+    render: (r) => <strong className="admin-audit__target">{r.targetId || 'N/A'}</strong>,
   },
-  { key: "ip", header: "IP Address", render: (r) => <span className="admin-audit__ip">{r.ip}</span> },
-  { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status} /> },
+  { key: "ip", header: "IP Address", render: (r) => <span className="admin-audit__ip">{r.ipAddress || 'Internal'}</span> },
+  { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status || 'success'} label={r.status || 'SUCCESS'} /> },
 ];
 
 export default function AdminAuditLogs() {
   const [page, setPage] = useState(1);
+  const [logs, setLogs] = useState([]);
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const fetchLogs = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch('http://localhost:5000/api/v1/audit-logs', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const { data } = await res.json();
+        setLogs(data);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <AdminLayout searchPlaceholder="Search audit trail or filters...">
@@ -115,7 +88,7 @@ export default function AdminAuditLogs() {
         />
 
         <div className="admin-audit__stats">
-          <StatCard label="Total Activities" value="1,284" subValue="+12% vs last mo" subValueType="success" />
+          <StatCard label="Total Activities" value={logs.length.toString()} subValue="+12% vs last mo" subValueType="success" />
           <StatCard label="Security Alerts" value="0" subValue="Stable" subValueType="default" />
           <div className="admin-card admin-audit__live">
             <span className="font-label-sm admin-audit__live-label">Live Stream Activity</span>
@@ -144,10 +117,10 @@ export default function AdminAuditLogs() {
           </div>
           <DataTable
             columns={columns}
-            data={LOGS}
+            data={logs}
             footer={
               <>
-                <span className="admin-audit__footer-text">Showing 1-25 of 1,284 logs</span>
+                <span className="admin-audit__footer-text">Showing {logs.length} logs</span>
                 <div className="admin-vendor-dir__pagination">
                   <button onClick={() => setPage((p) => Math.max(1, p - 1))}>‹</button>
                   <button onClick={() => setPage((p) => p + 1)}>›</button>
