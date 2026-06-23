@@ -1,10 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const { getVendors, getVendorById, updateVendor } = require('../controllers/vendorController');
-const { protect, authorize } = require('../middlewares/authMiddleware');
 
-router.get('/', protect, authorize('ADMIN'), getVendors);
-router.get('/:id', protect, getVendorById);
-router.put('/:id', protect, updateVendor);
+const {
+  getMe,
+  updateMe
+} = require('../controllers/vendorController');
+
+const { protect, isVendorActive } = require('../middlewares/authMiddleware');
+
+// Vendor
+router.get('/me', protect, getMe);
+router.put('/me', protect, isVendorActive, updateMe);
 
 module.exports = router;

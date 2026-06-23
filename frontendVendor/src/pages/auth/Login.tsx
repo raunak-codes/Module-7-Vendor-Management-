@@ -34,14 +34,26 @@ export default function Login() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = async (_data: LoginFormData) => {
+  const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
-    setTimeout(() => {
-      localStorage.setItem('token', 'demo-token');
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email, password: data.password })
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || 'Login failed');
+      
+      localStorage.setItem('token', resData.token);
+      localStorage.setItem('vendorStatus', resData.user?.status || 'UNKNOWN');
       message.success('Login successful!');
       navigate('/dashboard');
+    } catch (error: any) {
+      message.error(error.message || 'An error occurred during login');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -199,6 +211,7 @@ const registerSchema = z.object({
   businessName: z.string().min(2, 'Required'),
   contactName: z.string().min(2, 'Required'),
   email: z.string().email('Valid email required'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
   phone: z.string().min(10, 'Valid phone required'),
   address: z.string().min(5, 'Required'),
   vendorCategory: z.string().min(1, 'Select a category'),
@@ -219,6 +232,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [showRegPassword, setShowRegPassword] = useState(false);
 
   const { register, handleSubmit, formState: { errors }, trigger, setValue, watch } = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
@@ -232,7 +246,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   };
 
   const stepFields: Record<number, (keyof RegisterData)[]> = {
-    0: ['businessName', 'contactName', 'email', 'phone', 'address', 'vendorCategory'],
+    0: ['businessName', 'contactName', 'email', 'password', 'phone', 'address', 'vendorCategory'],
     1: ['services'],
     2: ['gstNumber', 'panNumber', 'bankName', 'accountNumber'],
   };
@@ -242,9 +256,37 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
     if (valid) setStep(s => s + 1);
   };
 
-  const onSubmit = (_data: RegisterData) => {
+  const onSubmit = async (data: RegisterData) => {
     setLoading(true);
-    setTimeout(() => { setLoading(false); onSuccess(); }, 1500);
+    try {
+      const response = await fetch('http://localhost:5000/api/v1/auth/register-vendor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessName: data.businessName,
+          contactName: data.contactName,
+          email: data.email,
+          password: data.password,
+          phone: data.phone,
+          address: data.address,
+          vendorCategory: data.vendorCategory,
+          services: data.services,
+          gstNumber: data.gstNumber,
+          panNumber: data.panNumber,
+          bankName: data.bankName,
+          accountNumber: data.accountNumber
+        })
+      });
+      const resData = await response.json();
+      if (!response.ok) throw new Error(resData.message || 'Registration failed');
+      
+      onSuccess();
+    } catch (error: any) {
+      // Assuming message is imported from antd somewhere
+      alert(error.message || 'An error occurred during registration');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -311,6 +353,20 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
                 />
               </div>
               {errors.email && <p style={{ color: 'var(--error)', fontSize: 12, marginTop: 2 }}>{errors.email.message}</p>}
+            </div>
+            <div>
+              <label style={labelStyle}>Password</label>
+              <div style={{ position: 'relative' }}>
+                <span className="material-symbols-outlined" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 20 }}>lock</span>
+                <input {...register('password')} type={showRegPassword ? 'text' : 'password'} placeholder="••••••••" style={{ ...inputStyle, paddingRight: 48 }}
+                  onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; }}
+                />
+                <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>{showRegPassword ? 'visibility_off' : 'visibility'}</span>
+                </button>
+              </div>
+              {errors.password && <p style={{ color: 'var(--error)', fontSize: 12, marginTop: 2 }}>{errors.password.message}</p>}
             </div>
             <div>
               <label style={labelStyle}>Address</label>

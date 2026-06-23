@@ -39,4 +39,15 @@ const authorize = (...roles) => {
   };
 };
 
-module.exports = { protect, authorize };
+const isVendorActive = async (req, res, next) => {
+  if (req.user.role === 'ADMIN') return next();
+  if (!req.user.vendorId) return res.status(403).json({ message: 'No vendor profile associated' });
+  
+  const vendor = await prisma.vendor.findUnique({ where: { id: req.user.vendorId } });
+  if (!vendor || vendor.status !== 'ACTIVE') {
+    return res.status(403).json({ message: `Access denied. Vendor status is ${vendor?.status || 'UNKNOWN'}` });
+  }
+  next();
+};
+
+module.exports = { protect, authorize, isVendorActive };

@@ -16,6 +16,7 @@ app.use(morgan('dev'));
 
 // Routes
 app.use('/api/v1', routes);
+app.use('/uploads', express.static('uploads'));
 
 // Error Handling
 app.use(notFound);

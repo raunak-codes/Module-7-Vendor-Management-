@@ -2,8 +2,9 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const { uploadDocument, getDocuments, updateDocumentStatus } = require('../controllers/kycController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
+const upload = require('../utils/upload');
 
-router.post('/', protect, uploadDocument);
+router.post('/', protect, upload.single('document'), uploadDocument);
 router.get('/', protect, getDocuments);
 router.put('/:docId/status', protect, authorize('ADMIN'), updateDocumentStatus);
 

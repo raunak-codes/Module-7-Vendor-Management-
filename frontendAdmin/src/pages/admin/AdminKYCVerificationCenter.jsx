@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PageHeader from "../../components/PageHeader";
 import AdminLayout from "../../layouts/AdminLayout";
 import StatusBadge from "../../components/StatusBadge";
@@ -12,130 +12,106 @@ import "./AdminKYCVerificationCenter.css";
  * Matches Stitch screen: kyc_verification_center
  */
 
-const TABS = [
-  { key: "gst", label: "GST Certificate" },
-  { key: "pan", label: "PAN Card" },
-  { key: "bank", label: "Bank Details" },
-];
-
-const HISTORY = [
-  {
-    title: "Documents Submitted",
-    time: "Today, 10:24 AM",
-    desc: "Vendor uploaded refreshed GST and PAN card documents for annual renewal.",
-  },
-  {
-    title: "Renewal Triggered",
-    time: "Oct 24, 2025",
-    desc: "Automated system flag: GST certificate nearing expiry within 30 days.",
-  },
-  {
-    title: "Initial Approval",
-    time: "Nov 15, 2024",
-    desc: "Verified by Sarah Chen. All documents matched the ministry registry.",
-  },
-];
-
 const AdminKYCVerificationCenter = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("gst");
-  const [decision, setDecision] = useState(null);
+  const [searchParams] = useSearchParams();
+  const vendorId = searchParams.get("vendorId");
+
+  const [activeTab, setActiveTab] = useState(null);
+  const [vendor, setVendor] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!vendorId) {
+      setError("No vendor ID provided.");
+      setLoading(false);
+      return;
+    }
+
+    const token = localStorage.getItem("adminToken");
+    fetch(`http://localhost:5000/api/v1/admin/vendors/${vendorId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch vendor data");
+        return res.json();
+      })
+      .then((data) => {
+        setVendor(data.data);
+        if (data.data.kycDocuments && data.data.kycDocuments.length > 0) {
+           setActiveTab(data.data.kycDocuments[0].id);
+        }
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [vendorId]);
+
+  const handleDecision = async (status) => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      const endpoint = status === 'approved' ? 'approve' : 'reject';
+      const res = await fetch(`http://localhost:5000/api/v1/admin/vendors/${vendorId}/${endpoint}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`Failed to ${status} vendor`);
+      navigate(`/admin/vendors/${vendorId}`);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  if (loading) return <AdminLayout><div style={{ padding: 40 }}>Loading KYC data...</div></AdminLayout>;
+  if (error) return <AdminLayout><div style={{ padding: 40, color: 'red' }}>Error: {error}</div></AdminLayout>;
+
+  const docs = vendor?.kycDocuments || [];
+  const activeDoc = docs.find(d => d.id === activeTab);
 
   return (
     <AdminLayout searchPlaceholder="Search KYC submissions...">
       <div className="admin-page admin-kyc">
       <PageHeader
-        breadcrumb={[{ label: "KYC Verification Center" }, { label: "Review ID: 8849-VND" }]}
+        breadcrumb={[{ label: "KYC Verification Center" }, { label: `Review ID: ${vendor.id.slice(0,8)}` }]}
         title={
           <span className="admin-kyc__title-row">
-            Elite Catering Solutions
+            {vendor.businessName}
           </span>
         }
         actions={
-          <button className="admin-btn admin-btn--outline" onClick={() => navigate("/admin/audit-logs")}>
-            Full Audit Log
+          <button className="admin-btn admin-btn--outline" onClick={() => navigate(`/admin/vendors/${vendor.id}`)}>
+            View Profile
           </button>
         }
       />
       <div className="admin-kyc__status-row">
-        <StatusBadge status="pending" label="Pending Review" />
+        <StatusBadge status={vendor.status.toLowerCase()} label={`Status: ${vendor.status}`} />
       </div>
 
       <div className="admin-kyc__grid">
         <div className="admin-card admin-kyc__doc-panel">
           <div className="admin-kyc__tabs">
-            {TABS.map((t) => (
+            {docs.map((doc) => (
               <button
-                key={t.key}
-                className={`admin-kyc__tab${activeTab === t.key ? " admin-kyc__tab--active" : ""}`}
-                onClick={() => setActiveTab(t.key)}
+                key={doc.id}
+                className={`admin-kyc__tab${activeTab === doc.id ? " admin-kyc__tab--active" : ""}`}
+                onClick={() => setActiveTab(doc.id)}
               >
-                {t.label}
+                {doc.documentType}
               </button>
             ))}
-            <div className="admin-kyc__tab-tools">
-              <button title="Zoom in">🔍</button>
-              <button title="Download">⬇</button>
-              <button title="Print">🖨</button>
-            </div>
+            {docs.length === 0 && <span style={{ padding: 12, color: '#6b7280' }}>No documents uploaded.</span>}
           </div>
 
-          <div className="admin-kyc__doc-preview">
-            {activeTab === "gst" && (
-              <div className="admin-kyc__cert">
-                <div className="admin-kyc__cert-head">
-                  <div className="admin-kyc__cert-seal" />
-                  <div>
-                    <p className="admin-kyc__cert-title">GOVERNMENT OF INDIA</p>
-                    <p className="admin-kyc__cert-sub">Goods and Services Tax Registration Certificate</p>
-                  </div>
-                  <div className="admin-kyc__cert-ref">
-                    <p>FORM GST REG-06</p>
-                    <p>Reference No: 27AABCE1234F1Z5</p>
-                  </div>
-                </div>
-                <hr />
-                <div className="admin-kyc__cert-grid">
-                  <div>
-                    <span className="admin-label">Registration Number</span>
-                    <p>27AABCE1234F1Z5</p>
-                  </div>
-                  <div>
-                    <span className="admin-label">Legal Name</span>
-                    <p>ELITE CATERING SOLUTIONS PVT LTD</p>
-                  </div>
-                  <div>
-                    <span className="admin-label">Trade Name</span>
-                    <p>ELITE CATERING</p>
-                  </div>
-                  <div>
-                    <span className="admin-label">Constitution of Business</span>
-                    <p>Private Limited Company</p>
-                  </div>
-                </div>
-                <div className="admin-kyc__cert-address">
-                  <span className="admin-label">Address of Principal Place of Business</span>
-                  <p>Plot No. 45, Industrial Area Phase II, Goregaon East, Mumbai, Maharashtra - 400063</p>
-                </div>
-                <div className="admin-kyc__cert-watermark">CERTIFIED COPY</div>
-              </div>
-            )}
-            {activeTab === "pan" && (
-              <div className="admin-kyc__cert admin-kyc__cert--simple">
-                <p className="admin-kyc__cert-title">PAN CARD</p>
-                <p>Permanent Account Number: AABCE1234F</p>
-                <p>Name: Elite Catering Solutions Pvt Ltd</p>
-                <p>Date of Incorporation: 15/03/2012</p>
-              </div>
-            )}
-            {activeTab === "bank" && (
-              <div className="admin-kyc__cert admin-kyc__cert--simple">
-                <p className="admin-kyc__cert-title">BANK DETAILS</p>
-                <p>Account Name: Elite Catering Solutions Pvt Ltd</p>
-                <p>Account Number: XXXX-XXXX-4492</p>
-                <p>Bank: HDFC Bank, Goregaon Branch</p>
-                <p>IFSC: HDFC0001234</p>
-              </div>
+          <div className="admin-kyc__doc-preview" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+            {activeDoc ? (
+               activeDoc.fileUrl.endsWith('.pdf') ? (
+                  <iframe src={`http://localhost:5000/${activeDoc.fileUrl}`} width="100%" height="500px" title={activeDoc.documentType} />
+               ) : (
+                  <img src={`http://localhost:5000/${activeDoc.fileUrl}`} alt={activeDoc.documentType} style={{ maxWidth: '100%', maxHeight: 500, objectFit: 'contain' }} />
+               )
+            ) : (
+               <p style={{ color: '#6b7280' }}>Select a document to preview.</p>
             )}
           </div>
         </div>
@@ -144,69 +120,44 @@ const AdminKYCVerificationCenter = () => {
           <div className="admin-card admin-kyc__summary">
             <h3 className="admin-section-title">Vendor Summary</h3>
             <div className="admin-kyc__summary-vendor">
-              <div className="admin-kyc__summary-avatar">EC</div>
               <div>
-                <p className="admin-kyc__summary-name">Elite Catering Solutions</p>
-                <p className="admin-kyc__summary-tag">Tier 1 Platinum Partner</p>
+                <p className="admin-kyc__summary-name">{vendor.businessName}</p>
+                <p className="admin-kyc__summary-tag">{vendor.category?.name || "Uncategorized"}</p>
               </div>
             </div>
             <div className="admin-kyc__summary-rows">
               <div>
                 <span className="admin-label">Primary Contact</span>
-                <p>Rajesh Malhotra (Director)</p>
+                <p>{vendor.contactPersonName}</p>
               </div>
               <div>
                 <span className="admin-label">Email Address</span>
-                <p>compliance@elitecatering.com</p>
+                <p>{vendor.user?.email}</p>
               </div>
               <div>
-                <span className="admin-label">Incorporation Date</span>
-                <p>March 15, 2012</p>
+                <span className="admin-label">GST / PAN</span>
+                <p>{vendor.gstNumber || "N/A"} / {vendor.panNumber || "N/A"}</p>
               </div>
             </div>
-          </div>
-
-          <div className="admin-card admin-kyc__history">
-            <h3 className="admin-section-title">Verification History</h3>
-            <ul className="admin-kyc__timeline">
-              {HISTORY.map((h) => (
-                <li key={h.title}>
-                  <div className="admin-kyc__timeline-head">
-                    <span>{h.title}</span>
-                    <span className="admin-kyc__timeline-time">{h.time}</span>
-                  </div>
-                  <p>{h.desc}</p>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </div>
 
       <div className="admin-kyc__action-bar">
         <div className="admin-kyc__action-bar-left">
-          <span className="admin-label">Compliance Review State:</span>
-          <span className="admin-kyc__pill admin-kyc__pill--lo">LO</span>
-          <span className="admin-kyc__pill admin-kyc__pill--id">ID</span>
-          <span className="admin-kyc__pill admin-kyc__pill--fi">FI</span>
-          <button className="admin-btn admin-btn--ghost">Request Changes</button>
         </div>
         <div className="admin-kyc__action-bar-right">
           <button
             className="admin-btn admin-btn--outline"
-            onClick={() => {
-              setDecision("rejected");
-              navigate("/admin/kyc");
-            }}
+            onClick={() => handleDecision("rejected")}
+            disabled={vendor.status !== 'PENDING'}
           >
-            Reject
+            Reject Vendor
           </button>
           <button
             className="admin-btn admin-btn--danger"
-            onClick={() => {
-              setDecision("approved");
-              navigate("/admin/kyc");
-            }}
+            onClick={() => handleDecision("approved")}
+            disabled={vendor.status !== 'PENDING'}
           >
             ✓ Approve Vendor
           </button>
