@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Put, Post, Patch, Delete, Body, Param, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { VendorService } from './vendor.service';
@@ -69,6 +69,47 @@ export class VendorController {
   async deleteService(@CurrentUser() user: any, @Param('serviceId') serviceId: string) {
     await this.vendorService.deleteService(serviceId, user.vendorId);
     return { message: 'Service deleted' };
+  }
+
+  // ── Performance stats (vendor self) ──
+  @Get('me/performance')
+  @Roles(Role.VENDOR)
+  @ApiOperation({ summary: 'Get own performance stats (ratings, WO completion, contracts)' })
+  async getMyPerformance(@CurrentUser() user: any) {
+    const data = await this.vendorService.getPerformanceStats(user.vendorId);
+    return { message: 'Performance stats fetched', data };
+  }
+
+  // ── Category routes — before :vendorId param ──
+  @Get('categories')
+  @ApiOperation({ summary: 'List all vendor categories' })
+  async getCategories() {
+    const data = await this.vendorService.getCategories();
+    return { message: 'Categories fetched', data };
+  }
+
+  @Post('categories')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] Create a vendor category' })
+  async createCategory(@Body() body: { name: string; description?: string }) {
+    const data = await this.vendorService.createCategory(body);
+    return { message: 'Category created', data };
+  }
+
+  @Patch('categories/:id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] Update a vendor category' })
+  async updateCategory(@Param('id') id: string, @Body() body: { name?: string; description?: string }) {
+    const data = await this.vendorService.updateCategory(id, body);
+    return { message: 'Category updated', data };
+  }
+
+  @Delete('categories/:id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] Delete a vendor category (only if no vendors assigned)' })
+  async deleteCategory(@Param('id') id: string) {
+    await this.vendorService.deleteCategory(id);
+    return { message: 'Category deleted' };
   }
 
   // ── Admin list/stats routes — before :vendorId param ──

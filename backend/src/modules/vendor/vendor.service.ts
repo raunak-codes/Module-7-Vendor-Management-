@@ -130,6 +130,87 @@ export class VendorService {
     return this.prisma.vendorService.delete({ where: { id: serviceId } });
   }
 
+  // ── Categories (admin CRUD) ────────────────────────────────
+  async getCategories() {
+    return this.prisma.vendorCategory.findMany({
+      include: { _count: { select: { vendors: true } } },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async createCategory(body: { name: string; description?: string }) {
+    const exists = await this.prisma.vendorCategory.findUnique({ where: { name: body.name } });
+    if (exists) throw new BadRequestException('A category with this name already exists');
+    return this.prisma.vendorCategory.create({ data: { name: body.name, description: body.description ?? null } });
+  }
+
+  async updateCategory(id: string, body: { name?: string; description?: string }) {
+    const cat = await this.prisma.vendorCategory.findUnique({ where: { id } });
+    if (!cat) throw new NotFoundException('Category not found');
+    return this.prisma.vendorCategory.update({ where: { id }, data: body });
+  }
+
+  async deleteCategory(id: string) {
+    const cat = await this.prisma.vendorCategory.findUnique({
+      where: { id },
+      include: { _count: { select: { vendors: true } } },
+    });
+    if (!cat) throw new NotFoundException('Category not found');
+    if ((cat as any)._count.vendors > 0) {
+      throw new BadRequestException(`Cannot delete: ${(cat as any)._count.vendors} vendor(s) are assigned to this category`);
+    }
+    return this.prisma.vendorCategory.delete({ where: { id } });
+  }
+
+  // ── Vendor performance stats (self) ───────────────────────
+  async getPerformanceStats(vendorId: string) {
+    const [ratings, ratingAgg, workOrders, contracts] = await Promise.all([
+      this.prisma.vendorRating.findMany({
+        where: { vendorId },
+        include: { reviewer: { select: { email: true, role: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+      this.prisma.vendorRating.aggregate({
+        where: { vendorId },
+        _avg: { rating: true },
+        _count: { rating: true },
+      }),
+      this.prisma.workOrder.groupBy({
+        by: ['status'],
+        where: { vendorId },
+        _count: true,
+      }),
+      this.prisma.vendorContract.findMany({
+        where: { vendorId, status: 'ACTIVE' },
+        include: { slas: true },
+        orderBy: { endDate: 'asc' },
+      }),
+    ]);
+
+    // Rating distribution 1-5
+    const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    for (const r of ratings) distribution[r.rating] = (distribution[r.rating] ?? 0) + 1;
+
+    const woStats = { DRAFT: 0, ASSIGNED: 0, IN_PROGRESS: 0, COMPLETED: 0, ON_HOLD: 0, CANCELLED: 0 };
+    for (const w of workOrders) woStats[w.status as keyof typeof woStats] = (w as any)._count;
+
+    const completionRate = (woStats.COMPLETED + woStats.CANCELLED) > 0
+      ? Math.round((woStats.COMPLETED / (woStats.COMPLETED + woStats.CANCELLED + woStats.ASSIGNED + woStats.IN_PROGRESS)) * 100)
+      : null;
+
+    return {
+      averageRating: ratingAgg._avg.rating ?? 0,
+      totalRatings: ratingAgg._count.rating,
+      distribution,
+      recentReviews: ratings.slice(0, 10),
+      workOrderStats: woStats,
+      completionRate,
+      activeContracts: contracts,
+      isFlagged: (await this.prisma.vendor.findUnique({ where: { id: vendorId }, select: { isFlagged: true, flagReason: true } })),
+    };
+  }
+
   // ── Work Orders for vendor ─────────────────────────────────
   async getMyWorkOrders(vendorId: string) {
     return this.prisma.workOrder.findMany({

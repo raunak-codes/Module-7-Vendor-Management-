@@ -41,6 +41,7 @@ const navGroups = [
     label: 'FEEDBACK',
     items: [
       { label: 'Ratings & Reviews', icon: 'star', path: '/ratings' },
+      { label: 'Performance & SLAs', icon: 'leaderboard', path: '/performance' },
       { label: 'Notifications', icon: 'notifications', path: '/notifications' },
     ],
   },

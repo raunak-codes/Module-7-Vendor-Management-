@@ -14,6 +14,7 @@ import RatingsReviews from './pages/ratings/RatingsReviews';
 import Notifications from './pages/notifications/Notifications';
 import EventAllocations from './pages/events/EventAllocations';
 import DocumentVault from './pages/contracts/DocumentVault';
+import VendorPerformance from './pages/performance/VendorPerformance';
 
 import { useState } from 'react';
 import KYCUpload from './pages/auth/KYCUpload';
@@ -111,6 +112,7 @@ export default function App() {
           {/* Feedback */}
           <Route path="ratings" element={<RatingsReviews />} />
           <Route path="contracts" element={<DocumentVault />} />
+          <Route path="performance" element={<VendorPerformance />} />
           <Route path="notifications" element={<Notifications />} />
         </Route>
       </Routes>
