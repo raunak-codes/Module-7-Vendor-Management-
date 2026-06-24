@@ -12,6 +12,15 @@ import { Roles } from '../../common/decorators/roles.decorator';
 export class PurchaseOrderController {
   constructor(private poService: PurchaseOrderService) {}
 
+  // Static routes before :id
+  @Get('pending-approval')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] List POs pending approval' })
+  async getPendingApproval() {
+    const data = await this.poService.getPendingApproval();
+    return { message: 'Pending approval POs fetched', data };
+  }
+
   @Get()
   @ApiOperation({ summary: 'List purchase orders (admin sees all, vendor sees own)' })
   async getAll(@CurrentUser() user: any, @Query() query: any) {
@@ -19,6 +28,15 @@ export class PurchaseOrderController {
     return { message: 'Purchase orders fetched', data: pos, pagination };
   }
 
+  @Post()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] Create a purchase order (auto-approved if < ₹1k, else queued for approval)' })
+  async create(@Body() dto: CreatePoDto, @CurrentUser() user: any) {
+    const data = await this.poService.create(dto, user.id);
+    return { message: 'Purchase order created', data };
+  }
+
+  // Parameterized routes
   @Get(':id')
   @ApiOperation({ summary: 'Get a single purchase order' })
   async getById(@Param('id') id: string, @CurrentUser() user: any) {
@@ -26,12 +44,20 @@ export class PurchaseOrderController {
     return { message: 'Purchase order fetched', data };
   }
 
-  @Post()
+  @Patch(':id/approve')
   @Roles(Role.ADMIN)
-  @ApiOperation({ summary: '[ADMIN] Create and issue a purchase order' })
-  async create(@Body() dto: CreatePoDto) {
-    const data = await this.poService.create(dto);
-    return { message: 'Purchase order created', data };
+  @ApiOperation({ summary: '[ADMIN] Approve a pending PO and dispatch to vendor' })
+  async approve(@Param('id') id: string, @CurrentUser() user: any) {
+    const data = await this.poService.approve(id, user.id);
+    return { message: 'Purchase order approved and issued', data };
+  }
+
+  @Patch(':id/reject-approval')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] Reject a pending PO with reason' })
+  async rejectApproval(@Param('id') id: string, @Body() body: { reason: string }, @CurrentUser() user: any) {
+    const data = await this.poService.rejectApproval(id, user.id, body.reason);
+    return { message: 'Purchase order approval rejected', data };
   }
 
   @Patch(':id/status')

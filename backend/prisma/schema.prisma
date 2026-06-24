@@ -41,12 +41,26 @@ enum KycDocumentType {
 
 enum PoStatus {
   DRAFT
+  PENDING_APPROVAL
   ISSUED
   ACCEPTED
   REJECTED
   PARTIAL_FULFILLED
   FULFILLED
   CANCELLED
+}
+
+enum ApprovalTier {
+  TIER_1
+  TIER_2
+  TIER_3
+}
+
+enum ApprovalStatus {
+  PENDING
+  AUTO_APPROVED
+  APPROVED
+  REJECTED
 }
 
 enum WorkOrderStatus {
@@ -190,28 +204,35 @@ model EventVendor {
 }
 
 model PurchaseOrder {
-  id          String            @id @default(uuid())
-  poNumber    String            @unique
-  vendorId    String
-  vendor      Vendor            @relation(fields: [vendorId], references: [id])
-  eventId     String?           
-  status      PoStatus          @default(DRAFT)
-  totalAmount Decimal           @db.Decimal(10, 2)
-  currency    String            @default("INR")
-  issueDate   DateTime?
+  id                   String          @id @default(uuid())
+  poNumber             String          @unique
+  vendorId             String
+  vendor               Vendor          @relation(fields: [vendorId], references: [id])
+  eventId              String?
+  status               PoStatus        @default(DRAFT)
+  totalAmount          Decimal         @db.Decimal(10, 2)
+  currency             String          @default("INR")
+  issueDate            DateTime?
   expectedDeliveryDate DateTime?
 
-  isDeleted   Boolean           @default(false)
-  deletedAt   DateTime?
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  approvalTier         ApprovalTier?
+  approvalStatus       ApprovalStatus  @default(PENDING)
+  approvedById         String?
+  approvedAt           DateTime?
+  rejectionReason      String?         @db.Text
 
-  lines       PurchaseOrderLine[]
-  workOrders  WorkOrder[]
-  invoices    VendorInvoice[]
+  isDeleted            Boolean         @default(false)
+  deletedAt            DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  lines                PurchaseOrderLine[]
+  workOrders           WorkOrder[]
+  invoices             VendorInvoice[]
 
   @@index([vendorId])
   @@index([status])
+  @@index([approvalStatus])
 }
 
 model PurchaseOrderLine {

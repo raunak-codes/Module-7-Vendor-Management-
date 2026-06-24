@@ -65,8 +65,17 @@ export default function PurchaseOrderDetails() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <span style={{ padding: '4px 12px', background: statusStyle.bg, color: statusStyle.color, fontWeight: 600, fontSize: 11, borderRadius: 9999, letterSpacing: '0.05em' }}>
-              {po.status}
+              {po.status?.replace('_', ' ')}
             </span>
+            {po.approvalStatus && po.approvalStatus !== 'AUTO_APPROVED' && (
+              <span style={{
+                padding: '4px 12px', borderRadius: 9999, fontSize: 11, fontWeight: 700, letterSpacing: '0.05em',
+                background: po.approvalStatus === 'PENDING' ? '#fef3c7' : po.approvalStatus === 'APPROVED' ? '#dcfce7' : '#fee2e2',
+                color: po.approvalStatus === 'PENDING' ? '#92400e' : po.approvalStatus === 'APPROVED' ? '#166534' : '#991b1b',
+              }}>
+                {po.approvalStatus === 'PENDING' ? 'Awaiting Admin Approval' : po.approvalStatus}
+              </span>
+            )}
             <span style={{ color: 'var(--secondary)', fontSize: 12, fontWeight: 600 }}>
               Created on {new Date(po.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
@@ -79,7 +88,7 @@ export default function PurchaseOrderDetails() {
           )}
         </div>
 
-        {(po.status === 'DRAFT' || po.status === 'ISSUED') && (
+        {(po.status === 'ISSUED') && po.approvalStatus !== 'PENDING' && (
           <div style={{ display: 'flex', gap: 12 }}>
             <Button
               icon={<CloseOutlined />}
