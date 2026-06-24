@@ -39,4 +39,19 @@ export class InvoiceController {
     const data = await this.invoiceService.updateStatus(id, body.status);
     return { message: `Invoice marked as ${body.status}`, data };
   }
+
+  @Post(':id/payments')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] Record a payment against an invoice' })
+  async recordPayment(@Param('id') id: string, @Body() body: { amountPaid: number; txnRef?: string; paymentMethod?: string; notes?: string }) {
+    const data = await this.invoiceService.recordPayment(id, body);
+    return { message: 'Payment recorded', data };
+  }
+
+  @Get('payments/all')
+  @ApiOperation({ summary: 'List payments (admin sees all, vendor sees own)' })
+  async getPayments(@CurrentUser() user: any, @Query() query: any) {
+    const { payments, pagination } = await this.invoiceService.getPayments(user, query);
+    return { message: 'Payments fetched', data: payments, pagination };
+  }
 }

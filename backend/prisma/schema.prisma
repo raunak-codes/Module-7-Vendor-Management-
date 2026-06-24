@@ -124,6 +124,7 @@ model Vendor {
   purchaseOrders      PurchaseOrder[]
   workOrders          WorkOrder[]
   invoices            VendorInvoice[]
+  payments            VendorPayment[]
   ratings             VendorRating[] @relation("VendorRated")
   blacklistRecord     VendorBlacklist?
   auditLogs           AuditLog[]
@@ -271,10 +272,31 @@ model VendorInvoice {
   updatedAt       DateTime          @updatedAt
 
   lines           VendorInvoiceLine[]
+  payments        VendorPayment[]
 
   @@index([vendorId])
   @@index([purchaseOrderId])
   @@index([status])
+}
+
+model VendorPayment {
+  id            String        @id @default(uuid())
+  invoiceId     String
+  invoice       VendorInvoice @relation(fields: [invoiceId], references: [id])
+  vendorId      String
+  vendor        Vendor        @relation(fields: [vendorId], references: [id])
+  amountPaid    Decimal       @db.Decimal(10, 2)
+  currency      String        @default("INR")
+  txnRef        String?
+  paymentMethod String?
+  notes         String?       @db.Text
+  paidAt        DateTime      @default(now())
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([vendorId])
+  @@index([invoiceId])
 }
 
 model VendorInvoiceLine {

@@ -14,61 +14,82 @@ import "./AdminPaymentManagement.css";
  */
 
 
-const columns = [
-  { key: "id", header: "Invoice/Payment ID", render: (r) => <span className="admin-payments__id">{r.invoiceNumber}</span> },
-  {
-    key: "vendor",
-    header: "Vendor",
-    render: (r) => (
-      <div className="admin-payments__vendor">
-        <span className="admin-payments__avatar">{(r.vendor?.businessName || '?').substring(0, 2).toUpperCase()}</span>
-        <div>
-          <p className="admin-payments__vendor-name">{r.vendor?.businessName}</p>
-        </div>
-      </div>
-    ),
-  },
-  { key: "amount", header: "Amount", render: (r) => <strong>{r.currency} {parseFloat(r.totalAmount).toLocaleString()}</strong> },
-  { key: "date", header: "Date", render: (r) => r.createdAt ? new Date(r.createdAt).toLocaleDateString() : 'N/A' },
-  { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status.toLowerCase()} label={r.status} /> },
-  {
-    key: "action",
-    header: "Action",
-    align: "right",
-    render: () => (
-      <button className="admin-btn admin-btn--ghost" aria-label="View payment">
-        <span className="material-symbols-outlined" style={{ fontSize: 18 }}>visibility</span>
-      </button>
-    ),
-  },
-];
-
 export default function AdminPaymentManagement() {
-  const [page, setPage] = useState(1);
   const [transactions, setTransactions] = useState([]);
+  const [paymentModal, setPaymentModal] = useState(null); // invoice to pay
+  const [payForm, setPayForm] = useState({ amountPaid: '', txnRef: '', paymentMethod: 'Bank Transfer', notes: '' });
+  const [saving, setSaving] = useState(false);
+  const token = localStorage.getItem('adminToken');
+  const headers = { Authorization: `Bearer ${token}` };
 
-  useEffect(() => {
-    fetchInvoices();
-  }, []);
+  useEffect(() => { fetchInvoices(); }, []);
 
   const fetchInvoices = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch('http://localhost:5000/api/v1/invoices', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await fetch('http://localhost:5000/api/v1/invoices?limit=100', { headers });
       if (res.ok) {
         const { data } = await res.json();
-        setTransactions(data?.items ?? data ?? []);
+        setTransactions(data ?? []);
       }
-    } catch (error) {
-      console.error(error);
-    }
+    } catch (e) { console.error(e); }
   };
 
-  const calculateTotal = (status) => {
-    return transactions.filter(t => t.status === status).reduce((acc, t) => acc + parseFloat(t.totalAmount), 0).toLocaleString();
+  const openPaymentModal = (invoice) => {
+    setPaymentModal(invoice);
+    setPayForm({ amountPaid: String(parseFloat(invoice.totalAmount)), txnRef: '', paymentMethod: 'Bank Transfer', notes: '' });
   };
+
+  const recordPayment = async () => {
+    if (!paymentModal || !payForm.amountPaid) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`http://localhost:5000/api/v1/invoices/${paymentModal.id}/payments`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amountPaid: parseFloat(payForm.amountPaid), txnRef: payForm.txnRef || undefined, paymentMethod: payForm.paymentMethod || undefined, notes: payForm.notes || undefined }),
+      });
+      if (res.ok) { setPaymentModal(null); fetchInvoices(); }
+    } catch (e) { console.error(e); }
+    finally { setSaving(false); }
+  };
+
+  const calculateTotal = (status) =>
+    transactions.filter(t => t.status === status).reduce((a, t) => a + parseFloat(t.totalAmount ?? 0), 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
+  const columns = [
+    { key: "id", header: "Invoice ID", render: (r) => <span className="admin-payments__id">{r.invoiceNumber}</span> },
+    {
+      key: "vendor", header: "Vendor",
+      render: (r) => (
+        <div className="admin-payments__vendor">
+          <span className="admin-payments__avatar">{(r.vendor?.businessName || '?').substring(0, 2).toUpperCase()}</span>
+          <p className="admin-payments__vendor-name">{r.vendor?.businessName}</p>
+        </div>
+      ),
+    },
+    { key: "po", header: "PO Ref", render: (r) => <span style={{ fontSize: 13, color: '#6b7280' }}>{r.purchaseOrder?.poNumber ?? '—'}</span> },
+    { key: "amount", header: "Amount", render: (r) => <strong>{r.currency} {parseFloat(r.totalAmount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong> },
+    { key: "date", header: "Submitted", render: (r) => r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' },
+    { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status.toLowerCase()} label={r.status.replace('_', ' ')} /> },
+    {
+      key: "action", header: "Action", align: "right",
+      render: (r) => (
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+          {['APPROVED', 'PARTIAL_PAID'].includes(r.status) && (
+            <button className="admin-btn admin-btn--primary" style={{ fontSize: 12, padding: '6px 14px' }} onClick={() => openPaymentModal(r)}>
+              Record Payment
+            </button>
+          )}
+          {r.status === 'SUBMITTED' && (
+            <button className="admin-btn admin-btn--outline" style={{ fontSize: 12, padding: '6px 14px' }}
+              onClick={async () => { await fetch(`http://localhost:5000/api/v1/invoices/${r.id}/status`, { method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'APPROVED' }) }); fetchInvoices(); }}>
+              Approve
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
     <AdminLayout searchPlaceholder="Search transactions, vendors or payment IDs...">
@@ -77,16 +98,10 @@ export default function AdminPaymentManagement() {
           title="Payment Management"
           subtitle="Oversee enterprise-wide financial distributions and settlement status."
           actions={
-            <>
-              <button className="admin-btn admin-btn--outline">
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>file_download</span>
-                Export Payments
-              </button>
-              <button className="admin-btn admin-btn--danger">
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>lock_open</span>
-                Release Payment
-              </button>
-            </>
+            <button className="admin-btn admin-btn--outline">
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>file_download</span>
+              Export
+            </button>
           }
         />
 
@@ -169,10 +184,54 @@ export default function AdminPaymentManagement() {
           </div>
         </div>
 
-        <button className="admin-fab" aria-label="New payment">
+        <button className="admin-fab" aria-label="New payment" onClick={() => {}}>
           <span className="material-symbols-outlined">add</span>
         </button>
       </div>
+
+      {/* Record Payment Modal */}
+      {paymentModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: 16, padding: 32, width: 480, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ fontFamily: 'Manrope', fontSize: 20, fontWeight: 700, marginBottom: 6 }}>Record Payment</h3>
+            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 20 }}>Invoice: <strong>{paymentModal.invoiceNumber}</strong> &mdash; {paymentModal.vendor?.businessName}</p>
+
+            <div style={{ padding: 14, background: '#f0fdf4', borderRadius: 10, marginBottom: 20, display: 'flex', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 13, color: '#374151' }}>Invoice Total</span>
+              <span style={{ fontWeight: 700 }}>{paymentModal.currency} {parseFloat(paymentModal.totalAmount).toLocaleString('en-IN')}</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {[
+                { label: 'Amount to Pay *', key: 'amountPaid', type: 'number', placeholder: '0.00' },
+                { label: 'Transaction Reference', key: 'txnRef', type: 'text', placeholder: 'TXN12345 / UTR number' },
+                { label: 'Notes', key: 'notes', type: 'text', placeholder: 'Optional notes...' },
+              ].map(({ label, key, type, placeholder }) => (
+                <div key={key}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>{label}</label>
+                  <input type={type} value={payForm[key]} onChange={e => setPayForm(f => ({ ...f, [key]: e.target.value }))} placeholder={placeholder}
+                    style={{ width: '100%', padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>Payment Method</label>
+                <select value={payForm.paymentMethod} onChange={e => setPayForm(f => ({ ...f, paymentMethod: e.target.value }))}
+                  style={{ width: '100%', padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 14, outline: 'none' }}>
+                  {['Bank Transfer', 'NEFT', 'RTGS', 'IMPS', 'Cheque', 'Cash', 'UPI'].map(m => <option key={m}>{m}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+              <button onClick={() => setPaymentModal(null)} style={{ flex: 1, padding: 12, borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontWeight: 600 }}>Cancel</button>
+              <button onClick={recordPayment} disabled={saving || !payForm.amountPaid}
+                style={{ flex: 1, padding: 12, borderRadius: 8, border: 'none', background: 'var(--admin-primary)', color: '#fff', cursor: 'pointer', fontWeight: 700, opacity: !payForm.amountPaid ? 0.5 : 1 }}>
+                {saving ? 'Recording...' : 'Confirm Payment'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }
