@@ -21,6 +21,7 @@ const AdminWorkOrderKanban = () => {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [vendors, setVendors]     = useState([]);
+  const [pos, setPos]             = useState([]);
   const [form, setForm]           = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError]   = useState(null);
@@ -35,6 +36,12 @@ const AdminWorkOrderKanban = () => {
     })
       .then((r) => r.json())
       .then((d) => setVendors((d.data?.items ?? d.data ?? []).filter((v) => v.status === "ACTIVE")))
+      .catch(() => {});
+    fetch("http://localhost:5000/api/v1/purchase-orders?limit=100", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => setPos(d.data?.items ?? d.data ?? []))
       .catch(() => {});
   }, [showModal]);
 
@@ -265,8 +272,15 @@ const AdminWorkOrderKanban = () => {
               </div>
 
               <div>
-                <label style={lbl}>Purchase Order ID (optional)</label>
-                <input style={inp} type="text" placeholder="PO UUID" value={form.purchaseOrderId} onChange={(e) => setForm((f) => ({ ...f, purchaseOrderId: e.target.value }))} />
+                <label style={lbl}>Link to Purchase Order (optional)</label>
+                <select style={inp} value={form.purchaseOrderId} onChange={(e) => setForm((f) => ({ ...f, purchaseOrderId: e.target.value }))}>
+                  <option value="">— None —</option>
+                  {pos.map((po) => (
+                    <option key={po.id} value={po.id}>
+                      {po.poNumber ?? po.id.slice(0, 8)} — ₹{Number(po.totalAmount ?? 0).toLocaleString('en-IN')} ({po.status})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

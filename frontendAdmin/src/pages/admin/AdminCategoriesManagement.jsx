@@ -78,7 +78,7 @@ export default function AdminCategoriesManagement() {
         <PageHeader
           title="Categories & Services"
           subtitle="Manage vendor service categories used across the platform."
-          action={<button className="admin-btn admin-btn--primary" onClick={openCreate}>+ New Category</button>}
+          actions={<button className="admin-btn admin-btn--primary" onClick={openCreate}>+ New Category</button>}
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>

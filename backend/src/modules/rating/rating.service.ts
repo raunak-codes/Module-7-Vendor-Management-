@@ -10,9 +10,6 @@ export class RatingService {
     const rating = await this.prisma.vendorRating.create({
       data: { vendorId, reviewerId, rating: body.rating, review: body.review ?? null, eventId: body.eventId ?? null },
     });
-    // Recalculate vendor avg rating
-    const agg = await this.prisma.vendorRating.aggregate({ where: { vendorId }, _avg: { rating: true } });
-    await this.prisma.vendor.update({ where: { id: vendorId }, data: { rating: agg._avg.rating ?? 0 } as any });
     return rating;
   }
 

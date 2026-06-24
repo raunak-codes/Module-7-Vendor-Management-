@@ -15,6 +15,7 @@ import Notifications from './pages/notifications/Notifications';
 import EventAllocations from './pages/events/EventAllocations';
 import DocumentVault from './pages/contracts/DocumentVault';
 import VendorPerformance from './pages/performance/VendorPerformance';
+import MyDocuments from './pages/profile/MyDocuments';
 
 import { useState } from 'react';
 import KYCUpload from './pages/auth/KYCUpload';
@@ -108,6 +109,7 @@ export default function App() {
           <Route path="profile" element={<VendorProfile />} />
           <Route path="profile/services" element={<ServiceManagement />} />
           <Route path="profile/rate-cards" element={<RateCardManagement />} />
+          <Route path="profile/documents" element={<MyDocuments />} />
 
           {/* Feedback */}
           <Route path="ratings" element={<RatingsReviews />} />

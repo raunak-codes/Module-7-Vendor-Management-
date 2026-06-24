@@ -6,6 +6,7 @@ import { UpdateVendorDto } from './dto/update-vendor.dto';
 import { VendorQueryDto } from './dto/vendor-query.dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 
 @ApiTags('Vendors')
 @ApiBearerAuth()
@@ -82,6 +83,7 @@ export class VendorController {
 
   // ── Category routes — before :vendorId param ──
   @Get('categories')
+  @Public()
   @ApiOperation({ summary: 'List all vendor categories' })
   async getCategories() {
     const data = await this.vendorService.getCategories();

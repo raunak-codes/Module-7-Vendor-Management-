@@ -132,7 +132,7 @@ export class SchedulerService {
     const ratings = await this.prisma.vendorRating.groupBy({
       by: ['vendorId'],
       _avg: { rating: true },
-      _count: { eventId: true },
+      _count: { id: true },
     });
 
     let flagged = 0;
@@ -140,7 +140,7 @@ export class SchedulerService {
 
     for (const r of ratings) {
       const avgRating = r._avg.rating ?? 0;
-      const eventCount = r._count.eventId ?? 0;
+      const eventCount = r._count.id ?? 0;
       const shouldFlag = avgRating < 2.5 && eventCount >= 3;
 
       const vendor = await this.prisma.vendor.findUnique({

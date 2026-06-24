@@ -15,7 +15,7 @@ const ICONS: Record<string, string> = { Catering: 'restaurant', Decoration: 'loc
 
 function getIcon(name: string) {
   const key = CATEGORIES.find(c => name.toLowerCase().includes(c.toLowerCase()));
-  return key ? ICONS[key] : 'miscellaneous_services';
+  return key ? ICONS[key] : 'room_service';
 }
 
 export default function ServiceManagement() {

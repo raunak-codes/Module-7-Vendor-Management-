@@ -18,19 +18,23 @@ export default function RatingsReviews() {
   const token = localStorage.getItem('token');
 
   useEffect(() => {
-    const vendorId = JSON.parse(atob(token!.split('.')[1])).vendorId;
-    if (!vendorId) return;
-
-    fetch(`http://localhost:5000/api/v1/vendors/${vendorId}/ratings`, { headers: { Authorization: `Bearer ${token}` } })
+    const headers = { Authorization: `Bearer ${token}` };
+    fetch('http://localhost:5000/api/v1/vendors/me', { headers })
       .then(r => r.json())
       .then(d => {
-        const data: any[] = d.data ?? [];
-        setReviews(data);
-        const total = data.length;
-        const avg = total ? data.reduce((a, r) => a + r.rating, 0) / total : 0;
-        const dist = [0, 0, 0, 0, 0];
-        data.forEach(r => { if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++; });
-        setSummary({ avg, total, distribution: dist });
+        const vendorId = d.data?.id;
+        if (!vendorId) { setLoading(false); return; }
+        return fetch(`http://localhost:5000/api/v1/vendors/${vendorId}/ratings`, { headers })
+          .then(r => r.json())
+          .then(d => {
+            const data: any[] = d.data ?? [];
+            setReviews(data);
+            const total = data.length;
+            const avg = total ? data.reduce((a, r) => a + r.rating, 0) / total : 0;
+            const dist = [0, 0, 0, 0, 0];
+            data.forEach(r => { if (r.rating >= 1 && r.rating <= 5) dist[r.rating - 1]++; });
+            setSummary({ avg, total, distribution: dist });
+          });
       })
       .catch(console.error)
       .finally(() => setLoading(false));

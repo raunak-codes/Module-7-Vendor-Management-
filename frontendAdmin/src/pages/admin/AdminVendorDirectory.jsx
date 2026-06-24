@@ -81,7 +81,7 @@ const AdminVendorDirectory = () => {
       <PageHeader
         title="Vendor Directory"
         subtitle="Manage and monitor registered event service partners."
-        action={
+        actions={
           <button className="admin-btn admin-btn--outline" onClick={() => downloadCsv(filtered.map(v => ({ id: v.id, businessName: v.businessName, category: v.category?.name ?? '', status: v.status, email: v.user?.email ?? '', isFlagged: v.isFlagged })), `vendors-${new Date().toISOString().slice(0,10)}.csv`)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>Export CSV
           </button>

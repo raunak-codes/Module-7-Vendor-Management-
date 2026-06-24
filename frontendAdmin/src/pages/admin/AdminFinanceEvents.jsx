@@ -107,7 +107,7 @@ export default function AdminFinanceEvents() {
         <PageHeader
           title="Finance Event Log"
           subtitle="Track all financial events — invoice approvals, payments, PO fulfillments, and webhook dispatch status."
-          action={
+          actions={
             <button className="admin-btn admin-btn--outline" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>
               Export CSV

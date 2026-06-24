@@ -27,6 +27,7 @@ const navGroups = [
     label: 'DOCUMENTS',
     items: [
       { label: 'Document Vault', icon: 'contract', path: '/contracts' },
+      { label: 'My Documents', icon: 'folder_open', path: '/profile/documents' },
     ],
   },
   {

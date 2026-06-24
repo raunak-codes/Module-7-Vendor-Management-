@@ -53,7 +53,7 @@ export default function VendorProfile() {
   const satisfaction = ratings.length ? Math.round((ratings.filter(r => r.rating >= 4).length / ratings.length) * 100) : 0;
 
   const services = profile?.services?.length > 0
-    ? profile.services.map((s: any, i: number) => ({ icon: i === 0 ? 'restaurant' : 'miscellaneous_services', label: s.name, primary: i === 0 }))
+    ? profile.services.map((s: any) => ({ icon: 'room_service', label: s.name, primary: true }))
     : [{ icon: 'room_service', label: profile?.category?.name ?? 'No services added yet', primary: true }];
 
   const contactDetails = [
@@ -113,7 +113,7 @@ export default function VendorProfile() {
               </div>
               <h3 style={{ fontFamily: 'Manrope', fontSize: 20, fontWeight: 600 }}>Services Offered</h3>
             </div>
-            <button onClick={() => navigate('/services')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Manage →</button>
+            <button onClick={() => navigate('/profile/services')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Manage →</button>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
             {services.map((s: any) => (

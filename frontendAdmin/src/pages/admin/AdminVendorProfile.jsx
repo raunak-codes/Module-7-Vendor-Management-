@@ -20,6 +20,28 @@ const AdminVendorProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Availability checker state
+  const today = new Date().toISOString().slice(0, 10);
+  const [availStart, setAvailStart] = useState(today);
+  const [availEnd, setAvailEnd] = useState('');
+  const [availResult, setAvailResult] = useState(null);
+  const [availLoading, setAvailLoading] = useState(false);
+
+  const checkAvailability = async () => {
+    if (!availStart || !availEnd) return;
+    setAvailLoading(true); setAvailResult(null);
+    try {
+      const token = localStorage.getItem('adminToken');
+      const res = await fetch(
+        `http://localhost:5000/api/v1/vendors/${vendorId}/availability?startDate=${availStart}&endDate=${availEnd}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const d = await res.json();
+      setAvailResult(d.data);
+    } catch (e) { console.error(e); }
+    finally { setAvailLoading(false); }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
     fetch(`http://localhost:5000/api/v1/vendors/${vendorId}`, {
@@ -117,6 +139,57 @@ const AdminVendorProfile = () => {
               <li>{vendor.user?.phone}</li>
               <li>{vendor.address}</li>
             </ul>
+          </div>
+
+          {/* Availability Checker */}
+          <div className="admin-card" style={{ padding: '20px 22px' }}>
+            <h3 className="admin-section-title" style={{ marginBottom: 14 }}>Check Availability</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div>
+                <span className="admin-label">From</span>
+                <input type="date" className="admin-input" value={availStart} min={today} onChange={e => { setAvailStart(e.target.value); setAvailResult(null); }} />
+              </div>
+              <div>
+                <span className="admin-label">To</span>
+                <input type="date" className="admin-input" value={availEnd} min={availStart || today} onChange={e => { setAvailEnd(e.target.value); setAvailResult(null); }} />
+              </div>
+              <button
+                className="admin-btn admin-btn--primary"
+                onClick={checkAvailability}
+                disabled={!availStart || !availEnd || availLoading}
+                style={{ width: '100%', marginTop: 4 }}
+              >
+                {availLoading ? 'Checking...' : 'Check Availability'}
+              </button>
+
+              {availResult && (
+                <div style={{
+                  marginTop: 4, borderRadius: 10, padding: '14px 16px',
+                  background: availResult.available ? '#f0fdf4' : '#fef2f2',
+                  border: `1px solid ${availResult.available ? '#86efac' : '#fca5a5'}`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: availResult.conflicts?.length ? 10 : 0 }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 20, color: availResult.available ? '#16a34a' : '#dc2626', fontVariationSettings: "'FILL' 1" }}>
+                      {availResult.available ? 'check_circle' : 'cancel'}
+                    </span>
+                    <strong style={{ fontSize: 14, color: availResult.available ? '#15803d' : '#b91c1c' }}>
+                      {availResult.available ? 'Available for this period' : 'Not available'}
+                    </strong>
+                  </div>
+                  {availResult.conflicts?.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <p style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', marginBottom: 2 }}>CONFLICTING WORK ORDERS</p>
+                      {availResult.conflicts.map(c => (
+                        <div key={c.id} style={{ fontSize: 12, background: '#fff', borderRadius: 6, padding: '6px 10px', border: '1px solid #fca5a5' }}>
+                          <strong>{c.woNumber}</strong> — {c.description}<br />
+                          <span style={{ color: '#6b7280' }}>{c.startDate ? new Date(c.startDate).toLocaleDateString() : '?'} → {c.endDate ? new Date(c.endDate).toLocaleDateString() : '?'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="admin-card admin-vendor-profile__docs">

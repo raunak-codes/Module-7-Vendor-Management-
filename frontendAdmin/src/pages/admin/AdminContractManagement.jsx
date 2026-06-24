@@ -40,8 +40,8 @@ export default function AdminContractManagement() {
         fetch('http://localhost:5000/api/v1/vendors?limit=200', { headers }),
       ]);
       const [cData, vData] = await Promise.all([cRes.json(), vRes.json()]);
-      setContracts(cData.data ?? []);
-      setVendors(vData.data ?? []);
+      setContracts(cData.data?.contracts ?? cData.data ?? []);
+      setVendors(vData.data?.items ?? vData.data ?? []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -93,7 +93,6 @@ export default function AdminContractManagement() {
       const d = await res.json();
       if (!res.ok) throw new Error(d.message || 'Failed');
       setContracts(prev => prev.map(c => c.id === terminateModal ? { ...c, status: 'TERMINATED' } : c));
-      if (selected?.id === terminateModal) setSelected(prev => ({ ...prev, status: 'TERMINATED' }));
       setTerminateModal(null); setTerminateReason('');
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }
@@ -154,7 +153,7 @@ export default function AdminContractManagement() {
         <PageHeader
           title="Contract Management"
           subtitle="Manage vendor contracts, SLA terms, and lifecycle."
-          action={<button className="admin-btn admin-btn--primary" onClick={() => { setShowCreate(true); setForm(BLANK_FORM); setError(''); }}>+ New Contract</button>}
+          actions={<button className="admin-btn admin-btn--primary" onClick={() => { setShowCreate(true); setForm(BLANK_FORM); setError(''); }}>+ New Contract</button>}
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 20 }}>
@@ -192,7 +191,7 @@ export default function AdminContractManagement() {
               <span className="admin-label">Vendor *</span>
               <select className="admin-input" value={form.vendorId} onChange={e => setForm(p => ({ ...p, vendorId: e.target.value }))}>
                 <option value="">Select vendor...</option>
-                {vendors.filter(v => v.status === 'APPROVED').map(v => (
+                {vendors.filter(v => v.status === 'ACTIVE').map(v => (
                   <option key={v.id} value={v.id}>{v.businessName}</option>
                 ))}
               </select>
@@ -265,7 +264,7 @@ export default function AdminContractManagement() {
                   </button>
                 )}
                 {['DRAFT', 'ACTIVE'].includes(selected.status) && (
-                  <button className="admin-btn admin-btn--danger" onClick={() => { setTerminateModal(selected.id); setTerminateReason(''); }}>
+                  <button className="admin-btn admin-btn--danger" onClick={() => { setTerminateModal(selected.id); setTerminateReason(''); setSelected(null); }}>
                     Terminate
                   </button>
                 )}

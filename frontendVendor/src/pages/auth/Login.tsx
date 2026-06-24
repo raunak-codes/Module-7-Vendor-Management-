@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -231,13 +231,19 @@ type RegisterData = z.infer<typeof registerSchema>;
 
 const STEPS = ['Company Info', 'Services', 'KYC & Bank'];
 const SERVICES = ['Catering', 'DJ & Music', 'Decoration', 'Photography', 'AV & Sound', 'Security', 'Transport', 'Venue'];
-const CATEGORIES = ['Catering', 'Entertainment', 'Decoration', 'Photography', 'AV Equipment', 'Security', 'Transport'];
-
 function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [showRegPassword, setShowRegPassword] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/v1/vendors/categories')
+      .then(r => r.json())
+      .then(d => setCategories(d.data ?? []))
+      .catch(() => setCategories([]));
+  }, []);
 
   const { register, handleSubmit, formState: { errors }, trigger, setValue } = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
@@ -385,7 +391,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
                 onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; }}
               >
                 <option value="">Select category...</option>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
               </select>
               {errors.vendorCategory && <p style={{ color: 'var(--error)', fontSize: 12, marginTop: 2 }}>{errors.vendorCategory.message}</p>}
             </div>
