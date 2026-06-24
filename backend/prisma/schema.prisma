@@ -63,6 +63,13 @@ enum ApprovalStatus {
   REJECTED
 }
 
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
 enum WorkOrderStatus {
   DRAFT
   ASSIGNED
@@ -139,6 +146,7 @@ model Vendor {
   workOrders          WorkOrder[]
   invoices            VendorInvoice[]
   payments            VendorPayment[]
+  contracts           VendorContract[]
   ratings             VendorRating[] @relation("VendorRated")
   blacklistRecord     VendorBlacklist?
   auditLogs           AuditLog[]
@@ -383,11 +391,11 @@ model AuditLog {
   id          String   @id @default(uuid())
   vendorId    String?
   vendor      Vendor?  @relation(fields: [vendorId], references: [id])
-  action      String   
-  entity      String   
-  entityId    String   
-  changes     Json?    
-  userId      String?  
+  action      String
+  entity      String
+  entityId    String
+  changes     Json?
+  userId      String?
   user        User?    @relation(fields: [userId], references: [id])
 
   createdAt   DateTime @default(now())
@@ -395,4 +403,41 @@ model AuditLog {
   @@index([vendorId])
   @@index([entity, entityId])
   @@index([userId])
+}
+
+model VendorContract {
+  id          String         @id @default(uuid())
+  vendorId    String
+  vendor      Vendor         @relation(fields: [vendorId], references: [id])
+  title       String
+  status      ContractStatus @default(DRAFT)
+  startDate   DateTime
+  endDate     DateTime
+  documentUrl String?
+  signedAt    DateTime?
+  createdById String?
+  notes       String?        @db.Text
+
+  slas        ContractSLA[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([vendorId])
+  @@index([status])
+  @@index([endDate])
+}
+
+model ContractSLA {
+  id         String         @id @default(uuid())
+  contractId String
+  contract   VendorContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  metric     String
+  target     String
+  penaltyPct Decimal?       @db.Decimal(5, 2)
+
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@index([contractId])
 }

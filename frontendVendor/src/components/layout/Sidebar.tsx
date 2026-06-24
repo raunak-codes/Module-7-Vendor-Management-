@@ -24,6 +24,12 @@ const navGroups = [
     ],
   },
   {
+    label: 'DOCUMENTS',
+    items: [
+      { label: 'Document Vault', icon: 'contract', path: '/contracts' },
+    ],
+  },
+  {
     label: 'MY PROFILE',
     items: [
       { label: 'Vendor Profile', icon: 'account_circle', path: '/profile' },

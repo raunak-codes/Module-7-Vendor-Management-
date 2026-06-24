@@ -18,6 +18,7 @@ import AdminVendorProfile from "./pages/admin/AdminVendorProfile";
 import AdminWorkOrderDetails from "./pages/admin/AdminWorkOrderDetails";
 import AdminWorkOrderKanban from "./pages/admin/AdminWorkOrderKanban";
 import AdminCreatePurchaseOrder from "./pages/admin/AdminCreatePurchaseOrder";
+import AdminContractManagement from "./pages/admin/AdminContractManagement";
 
 function ProtectedRoute() {
   const token = localStorage.getItem("adminToken");
@@ -49,6 +50,7 @@ function App() {
           <Route path="/admin/vendors/:vendorId" element={<AdminVendorProfile />} />
           <Route path="/admin/work-orders" element={<AdminWorkOrderKanban />} />
           <Route path="/admin/work-orders/:workOrderId" element={<AdminWorkOrderDetails />} />
+          <Route path="/admin/contracts" element={<AdminContractManagement />} />
         </Route>
       </Routes>
     </BrowserRouter>

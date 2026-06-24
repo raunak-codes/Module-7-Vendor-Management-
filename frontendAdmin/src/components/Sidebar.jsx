@@ -25,6 +25,7 @@ const adminNavItems = [
   { to: '/admin/work-orders', icon: 'engineering', label: 'Work Orders' },
   { to: '/admin/payments', icon: 'payments', label: 'Payments' },
   { to: '/admin/invoices', icon: 'description', label: 'Invoices' },
+  { to: '/admin/contracts', icon: 'contract', label: 'Contracts' },
   { to: '/admin/vendors?status=PENDING', icon: 'verified_user', label: 'KYC' },
   { to: '/admin/analytics', icon: 'analytics', label: 'Analytics' },
   { to: '/admin/audit-logs', icon: 'history', label: 'Logs' },

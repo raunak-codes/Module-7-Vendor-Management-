@@ -13,6 +13,7 @@ import RateCardManagement from './pages/profile/RateCardManagement';
 import RatingsReviews from './pages/ratings/RatingsReviews';
 import Notifications from './pages/notifications/Notifications';
 import EventAllocations from './pages/events/EventAllocations';
+import DocumentVault from './pages/contracts/DocumentVault';
 
 import { useState } from 'react';
 import KYCUpload from './pages/auth/KYCUpload';
@@ -109,6 +110,7 @@ export default function App() {
 
           {/* Feedback */}
           <Route path="ratings" element={<RatingsReviews />} />
+          <Route path="contracts" element={<DocumentVault />} />
           <Route path="notifications" element={<Notifications />} />
         </Route>
       </Routes>

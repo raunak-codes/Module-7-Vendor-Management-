@@ -16,6 +16,7 @@ import { WorkOrderModule } from './modules/work-order/work-order.module';
 import { InvoiceModule } from './modules/invoice/invoice.module';
 import { RatingModule } from './modules/rating/rating.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { ContractModule } from './modules/contract/contract.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -38,6 +39,7 @@ import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
     InvoiceModule,
     RatingModule,
     AuditModule,
+    ContractModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
