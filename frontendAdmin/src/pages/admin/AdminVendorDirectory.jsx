@@ -51,7 +51,16 @@ const AdminVendorDirectory = () => {
     {
       key: "businessName",
       header: "Vendor Name",
-      render: (r) => <span className="admin-vendor-dir__name">{r.businessName}</span>,
+      render: (r) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="admin-vendor-dir__name">{r.businessName}</span>
+          {r.isFlagged && (
+            <span title={r.flagReason ?? 'Flagged for review'} style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 9999, background: '#fef3c7', color: '#92400e', cursor: 'help', whiteSpace: 'nowrap' }}>
+              ⚑ Flagged
+            </span>
+          )}
+        </div>
+      ),
     },
     { key: "category", header: "Category", render: (r) => r.category?.name || "—" },
     { key: "status", header: "Status", render: (r) => <StatusBadge status={r.status.toLowerCase()} /> },
@@ -114,6 +123,7 @@ const AdminVendorDirectory = () => {
             <StatCard label="Total Vendors" value={String(vendors.length)} helperText="Registered in system" accentColor="#b51b1e" />
             <StatCard label="Pending Review" value={String(vendors.filter(v => v.status === "PENDING").length)} helperText="Awaiting approval" accentColor="#caa802" />
             <StatCard label="Active Vendors" value={String(vendors.filter(v => v.status === "ACTIVE").length)} helperText="Approved and operational" accentColor="#2563eb" />
+            <StatCard label="Flagged" value={String(vendors.filter(v => v.isFlagged).length)} helperText="Low rating auto-flag" accentColor="#d97706" />
           </div>
         </>
       )}

@@ -129,6 +129,8 @@ model Vendor {
   ifscCode            String?
 
   status              VendorStatus @default(PENDING)
+  isFlagged           Boolean      @default(false)
+  flagReason          String?      @db.Text
   categoryId          String
   category            VendorCategory @relation(fields: [categoryId], references: [id])
   
@@ -228,6 +230,7 @@ model PurchaseOrder {
   approvedById         String?
   approvedAt           DateTime?
   rejectionReason      String?         @db.Text
+  escalatedAt          DateTime?
 
   isDeleted            Boolean         @default(false)
   deletedAt            DateTime?

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './modules/redis/redis.module';
@@ -17,6 +18,7 @@ import { InvoiceModule } from './modules/invoice/invoice.module';
 import { RatingModule } from './modules/rating/rating.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ContractModule } from './modules/contract/contract.module';
+import { SchedulerModule } from './modules/scheduler/scheduler.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -26,6 +28,7 @@ import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 30 }]),
     PrismaModule,
     RedisModule,
@@ -40,6 +43,7 @@ import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
     RatingModule,
     AuditModule,
     ContractModule,
+    SchedulerModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
