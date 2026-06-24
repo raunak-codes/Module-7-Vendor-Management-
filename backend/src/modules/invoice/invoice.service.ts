@@ -56,12 +56,85 @@ export class InvoiceService {
     return inv;
   }
 
+  async validateMatch(id: string) {
+    const inv = await this.prisma.vendorInvoice.findUnique({
+      where: { id },
+      include: {
+        purchaseOrder: { include: { workOrders: true } },
+        lines: true,
+      },
+    });
+    if (!inv) throw new NotFoundException('Invoice not found');
+
+    const result: {
+      invoiceAmount: number;
+      poAmount: number | null;
+      poNumber: string | null;
+      amountCheck: 'PASS' | 'FAIL' | 'NO_PO';
+      amountDelta: number | null;
+      workOrders: { id: string; woNumber: string; status: string; pass: boolean }[];
+      woCheck: 'PASS' | 'FAIL' | 'NO_WO';
+      overallPass: boolean;
+    } = {
+      invoiceAmount: Number(inv.totalAmount),
+      poAmount: null,
+      poNumber: null,
+      amountCheck: 'NO_PO',
+      amountDelta: null,
+      workOrders: [],
+      woCheck: 'NO_WO',
+      overallPass: true,
+    };
+
+    if (inv.purchaseOrder) {
+      const po = inv.purchaseOrder;
+      result.poAmount = Number(po.totalAmount);
+      result.poNumber = po.poNumber;
+      const limit = result.poAmount * 1.05; // 5% buffer per SDD §15
+      result.amountDelta = result.invoiceAmount - result.poAmount;
+      result.amountCheck = result.invoiceAmount <= limit ? 'PASS' : 'FAIL';
+
+      if (po.workOrders.length > 0) {
+        result.workOrders = po.workOrders.map(wo => ({
+          id: wo.id,
+          woNumber: wo.woNumber,
+          status: wo.status,
+          pass: wo.status === 'COMPLETED',
+        }));
+        result.woCheck = result.workOrders.every(wo => wo.pass) ? 'PASS' : 'FAIL';
+      }
+    }
+
+    result.overallPass =
+      result.amountCheck !== 'FAIL' &&
+      result.woCheck !== 'FAIL';
+
+    return result;
+  }
+
   async updateStatus(id: string, status: string) {
     const allowed = ['APPROVED', 'REJECTED', 'PAID', 'PARTIAL_PAID'];
     if (!allowed.includes(status)) throw new BadRequestException(`Status must be one of: ${allowed.join(', ')}`);
 
-    const inv = await this.prisma.vendorInvoice.findUnique({ where: { id }, include: { vendor: { include: { user: { select: { id: true, email: true } } } } } });
+    const inv = await this.prisma.vendorInvoice.findUnique({
+      where: { id },
+      include: { vendor: { include: { user: { select: { id: true, email: true } } } }, purchaseOrder: { include: { workOrders: true } } },
+    });
     if (!inv) throw new NotFoundException('Invoice not found');
+
+    // 3-way match enforced on APPROVED transition
+    if (status === 'APPROVED' && inv.purchaseOrderId) {
+      const match = await this.validateMatch(id);
+      if (!match.overallPass) {
+        const reasons: string[] = [];
+        if (match.amountCheck === 'FAIL') reasons.push(`Invoice (${inv.currency} ${Number(inv.totalAmount).toLocaleString()}) exceeds PO (${inv.currency} ${match.poAmount?.toLocaleString()}) by more than 5%`);
+        if (match.woCheck === 'FAIL') {
+          const open = match.workOrders.filter(w => !w.pass).map(w => w.woNumber).join(', ');
+          reasons.push(`Work orders not yet completed: ${open}`);
+        }
+        throw new BadRequestException(`3-way match failed: ${reasons.join('; ')}`);
+      }
+    }
 
     const updated = await this.prisma.vendorInvoice.update({ where: { id }, data: { status: status as any, paymentDate: status === 'PAID' ? new Date() : undefined } });
 

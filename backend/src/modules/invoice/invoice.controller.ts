@@ -32,6 +32,14 @@ export class InvoiceController {
     return { message: 'Invoice submitted', data };
   }
 
+  @Get(':id/match-check')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] Run 3-way match check on an invoice' })
+  async validateMatch(@Param('id') id: string) {
+    const data = await this.invoiceService.validateMatch(id);
+    return { message: '3-way match result', data };
+  }
+
   @Patch(':id/status')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '[ADMIN] Update invoice status (approve, reject, mark paid)' })
