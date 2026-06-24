@@ -19,6 +19,7 @@ import { RatingModule } from './modules/rating/rating.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { ContractModule } from './modules/contract/contract.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { FinanceEventsModule } from './modules/finance-events/finance-events.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -44,6 +45,7 @@ import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
     AuditModule,
     ContractModule,
     SchedulerModule,
+    FinanceEventsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

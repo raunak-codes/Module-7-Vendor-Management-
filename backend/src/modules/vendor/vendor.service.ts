@@ -211,6 +211,43 @@ export class VendorService {
     };
   }
 
+  // ── Vendor Availability (conflict detection) ───────────────
+  async checkAvailability(vendorId: string, startDate: string, endDate: string) {
+    const vendor = await this.prisma.vendor.findUnique({ where: { id: vendorId }, select: { id: true, businessName: true, status: true } });
+    if (!vendor) throw new NotFoundException('Vendor not found');
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // Find work orders with overlapping date ranges
+    const conflicts = await this.prisma.workOrder.findMany({
+      where: {
+        vendorId,
+        isDeleted: false,
+        status: { in: ['ASSIGNED', 'IN_PROGRESS', 'ON_HOLD'] },
+        OR: [
+          { startDate: { lte: end }, endDate: { gte: start } },
+          { startDate: null, endDate: null },
+        ],
+      },
+      select: { id: true, woNumber: true, description: true, status: true, startDate: true, endDate: true },
+    });
+
+    // Exclude null-date WOs from hard conflicts but include as warnings
+    const hardConflicts = conflicts.filter(c => c.startDate && c.endDate);
+    const warnings = conflicts.filter(c => !c.startDate || !c.endDate);
+
+    return {
+      vendorId,
+      businessName: vendor.businessName,
+      vendorStatus: vendor.status,
+      requestedRange: { startDate, endDate },
+      available: hardConflicts.length === 0 && vendor.status === 'ACTIVE',
+      conflicts: hardConflicts,
+      warnings,
+    };
+  }
+
   // ── Work Orders for vendor ─────────────────────────────────
   async getMyWorkOrders(vendorId: string) {
     return this.prisma.workOrder.findMany({

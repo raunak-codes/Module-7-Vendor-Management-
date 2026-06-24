@@ -29,6 +29,7 @@ const adminNavItems = [
   { to: '/admin/categories', icon: 'category', label: 'Categories' },
   { to: '/admin/vendors?status=PENDING', icon: 'verified_user', label: 'KYC' },
   { to: '/admin/analytics', icon: 'analytics', label: 'Analytics' },
+  { to: '/admin/finance-events', icon: 'account_balance', label: 'Finance Bus' },
   { to: '/admin/audit-logs', icon: 'history', label: 'Logs' },
   { to: '/admin/notifications', icon: 'notifications', label: 'Notifications' },
   { to: '/admin/settings', icon: 'settings', label: 'Settings' },

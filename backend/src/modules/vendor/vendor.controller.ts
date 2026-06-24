@@ -137,6 +137,19 @@ export class VendorController {
     return { message: 'Vendors fetched', data: vendors, pagination };
   }
 
+  // ── Availability check — before :vendorId routes ──
+  @Get(':vendorId/availability')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: '[ADMIN] Check vendor availability for a date range (conflict detection)' })
+  async checkAvailability(
+    @Param('vendorId') vendorId: string,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    const data = await this.vendorService.checkAvailability(vendorId, startDate, endDate);
+    return { message: 'Availability checked', data };
+  }
+
   // ── Parameterized :vendorId routes — must come last ──
   @Get(':vendorId')
   @Roles(Role.ADMIN)

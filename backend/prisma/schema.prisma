@@ -408,6 +408,34 @@ model AuditLog {
   @@index([userId])
 }
 
+enum FinanceEventType {
+  INVOICE_APPROVED
+  INVOICE_PAID
+  INVOICE_REJECTED
+  PO_ISSUED
+  PO_FULFILLED
+  PAYMENT_RECORDED
+}
+
+model FinanceEvent {
+  id          String           @id @default(uuid())
+  type        FinanceEventType
+  entityId    String
+  entityType  String
+  vendorId    String?
+  amount      Decimal?         @db.Decimal(12, 2)
+  currency    String?          @default("INR")
+  metadata    Json?
+  webhookSent Boolean          @default(false)
+  webhookAt   DateTime?
+
+  createdAt   DateTime         @default(now())
+
+  @@index([type])
+  @@index([vendorId])
+  @@index([entityId])
+}
+
 model VendorContract {
   id          String         @id @default(uuid())
   vendorId    String

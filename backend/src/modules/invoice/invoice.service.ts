@@ -2,10 +2,16 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { AuditService } from '../audit/audit.service';
+import { FinanceEventsService } from '../finance-events/finance-events.service';
 
 @Injectable()
 export class InvoiceService {
-  constructor(private prisma: PrismaService, private notifService: NotificationService, private audit: AuditService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifService: NotificationService,
+    private audit: AuditService,
+    private financeEvents: FinanceEventsService,
+  ) {}
 
   async getAll(user: any, query: any) {
     const { page = 1, limit = 10, status, sortBy = 'createdAt', order = 'desc' } = query;
@@ -146,6 +152,19 @@ export class InvoiceService {
       });
     }
     await this.audit.log({ action: `INVOICE_${status}`, entity: 'Invoice', entityId: id, changes: { status, invoiceNumber: inv.invoiceNumber } });
+
+    if (status === 'APPROVED' || status === 'PAID' || status === 'REJECTED') {
+      await this.financeEvents.emit({
+        type: status === 'APPROVED' ? 'INVOICE_APPROVED' : status === 'PAID' ? 'INVOICE_PAID' : 'INVOICE_REJECTED',
+        entityId: id,
+        entityType: 'VendorInvoice',
+        vendorId: inv.vendorId,
+        amount: Number(inv.totalAmount),
+        currency: inv.currency,
+        metadata: { invoiceNumber: inv.invoiceNumber },
+      });
+    }
+
     return updated;
   }
 
@@ -189,6 +208,15 @@ export class InvoiceService {
     }
 
     await this.audit.log({ action: 'PAYMENT_RECORDED', entity: 'Invoice', entityId: id, changes: { amountPaid: body.amountPaid, txnRef: body.txnRef, newStatus } });
+    await this.financeEvents.emit({
+      type: 'PAYMENT_RECORDED',
+      entityId: payment.id,
+      entityType: 'VendorPayment',
+      vendorId: inv.vendorId,
+      amount: body.amountPaid,
+      currency: inv.currency,
+      metadata: { invoiceId: id, invoiceNumber: inv.invoiceNumber, txnRef: body.txnRef, newStatus },
+    });
     return payment;
   }
 

@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
 import { AuditService } from '../audit/audit.service';
 import { CreatePoDto } from './dto/create-po.dto';
+import { FinanceEventsService } from '../finance-events/finance-events.service';
 
 // SDD §9 Approval Matrix thresholds (INR)
 const TIER1_MAX = 1000;
@@ -20,6 +21,7 @@ export class PurchaseOrderService {
     private prisma: PrismaService,
     private notifService: NotificationService,
     private audit: AuditService,
+    private financeEvents: FinanceEventsService,
   ) {}
 
   async getAll(user: any, query: any) {
@@ -244,6 +246,28 @@ export class PurchaseOrderService {
       entityId: id,
       changes: { status, poNumber: po.poNumber },
     });
+
+    if (status === 'FULFILLED') {
+      await this.financeEvents.emit({
+        type: 'PO_FULFILLED',
+        entityId: id,
+        entityType: 'PurchaseOrder',
+        vendorId: po.vendorId,
+        amount: Number(po.totalAmount),
+        currency: po.currency,
+        metadata: { poNumber: po.poNumber },
+      });
+    } else if (status === 'ACCEPTED') {
+      await this.financeEvents.emit({
+        type: 'PO_ISSUED',
+        entityId: id,
+        entityType: 'PurchaseOrder',
+        vendorId: po.vendorId,
+        amount: Number(po.totalAmount),
+        currency: po.currency,
+        metadata: { poNumber: po.poNumber },
+      });
+    }
 
     return updated;
   }

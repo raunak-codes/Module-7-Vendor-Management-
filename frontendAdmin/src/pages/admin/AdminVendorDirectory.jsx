@@ -16,6 +16,14 @@ import "./AdminVendorDirectory.css";
 
 const STATUSES = ["All Statuses", "PENDING", "ACTIVE", "REJECTED", "INACTIVE"];
 
+function downloadCsv(rows, filename) {
+  if (!rows.length) return;
+  const keys = Object.keys(rows[0]);
+  const body = rows.map(r => keys.map(k => { const v = String(r[k] ?? '').replace(/"/g, '""'); return v.includes(',') || v.includes('"') ? `"${v}"` : v; }).join(',')).join('\n');
+  const blob = new Blob([`${keys.join(',')}\n${body}`], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
+}
+
 const AdminVendorDirectory = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -73,6 +81,11 @@ const AdminVendorDirectory = () => {
       <PageHeader
         title="Vendor Directory"
         subtitle="Manage and monitor registered event service partners."
+        action={
+          <button className="admin-btn admin-btn--outline" onClick={() => downloadCsv(filtered.map(v => ({ id: v.id, businessName: v.businessName, category: v.category?.name ?? '', status: v.status, email: v.user?.email ?? '', isFlagged: v.isFlagged })), `vendors-${new Date().toISOString().slice(0,10)}.csv`)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>download</span>Export CSV
+          </button>
+        }
       />
 
       {loading && (
