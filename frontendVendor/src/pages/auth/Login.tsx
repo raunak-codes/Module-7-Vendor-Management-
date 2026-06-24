@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -44,14 +44,14 @@ export default function Login() {
       });
       const resData = await response.json();
       if (!response.ok) throw new Error(resData.message || 'Login failed');
-      
+
       const { token, user } = resData.data;
       localStorage.setItem('token', token);
       localStorage.setItem('userEmail', user.email);
       localStorage.setItem('userRole', user.role);
       localStorage.setItem('vendorId', user.vendorId ?? '');
       localStorage.setItem('vendorStatus', user.vendorStatus ?? user.status ?? 'PENDING');
-      
+
       message.success('Login successful!');
       navigate('/dashboard');
     } catch (error: any) {
@@ -107,7 +107,7 @@ export default function Login() {
             ))}
           </div>
 
-          {/* Testimonial image card */}
+          {/* Testimonial card */}
           <div style={{
             borderRadius: 16, overflow: 'hidden', position: 'relative', height: 260,
             background: 'linear-gradient(135deg, #1a1a2e 0%, #2d1b2e 50%, #851217 100%)',
@@ -118,13 +118,13 @@ export default function Login() {
                 "The most seamless platform for elite vendor management I've used in a decade."
               </p>
               <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.6 }}>
-                â€” Julian V., Director of Operations
+                -- Julian V., Director of Operations
               </p>
             </div>
           </div>
         </div>
 
-        {/* Right â€” Auth Card */}
+        {/* Right - Auth Card */}
         <div style={{ background: '#fff', borderRadius: 20, boxShadow: '0 8px 40px rgba(0,0,0,0.08)', border: '1px solid #f0f0f0', overflow: 'hidden' }}>
           {/* Tabs */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: '1px solid #f0f0f0' }}>
@@ -132,7 +132,7 @@ export default function Login() {
               <button key={t} onClick={() => setTab(t)} style={{
                 padding: '20px', border: 'none', cursor: 'pointer',
                 background: tab === t ? '#fff' : '#fafafa',
-                borderBottom: tab === t ? `2px solid var(--primary)` : '2px solid transparent',
+                borderBottom: tab === t ? '2px solid var(--primary)' : '2px solid transparent',
                 color: tab === t ? 'var(--primary)' : '#9ca3af',
                 fontWeight: 700, fontSize: 16, fontFamily: 'Manrope',
                 textTransform: 'capitalize', letterSpacing: '0.01em',
@@ -165,7 +165,7 @@ export default function Login() {
                   </div>
                   <div style={{ position: 'relative' }}>
                     <span className="material-symbols-outlined" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 20 }}>lock</span>
-                    <input {...register('password')} type={showPassword ? 'text' : 'password'} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" style={{ ...inputStyle, paddingRight: 48 }}
+                    <input {...register('password')} type={showPassword ? 'text' : 'password'} placeholder="Enter your password" style={{ ...inputStyle, paddingRight: 48 }}
                       onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(133,18,23,0.08)'; }}
                       onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; }}
                     />
@@ -204,13 +204,13 @@ export default function Login() {
       </main>
 
       <footer style={{ padding: '24px 48px', textAlign: 'center' }}>
-        <p style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>Â© 2024 EventHub360 Global Solutions. All Rights Reserved.</p>
+        <p style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>&copy; 2024 EventHub360 Global Solutions. All Rights Reserved.</p>
       </footer>
     </div>
   );
 }
 
-// â”€â”€ Multi-step Register Form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Multi-step Register Form --
 
 const registerSchema = z.object({
   businessName: z.string().min(2, 'Required'),
@@ -239,7 +239,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [showRegPassword, setShowRegPassword] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, trigger, setValue, watch } = useForm<RegisterData>({
+  const { register, handleSubmit, formState: { errors }, trigger, setValue } = useForm<RegisterData>({
     resolver: zodResolver(registerSchema),
     defaultValues: { services: [] },
   });
@@ -278,12 +278,11 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
           services: data.services,
           gstNumber: data.gstNumber,
           panNumber: data.panNumber,
-          bankAccountNumber: data.accountNumber
+          bankAccountNumber: data.accountNumber,
         })
       });
       const resData = await response.json();
       if (!response.ok) throw new Error(resData.message || 'Registration failed');
-      
       onSuccess();
     } catch (error: any) {
       message.error(error.message || 'An error occurred during registration');
@@ -301,7 +300,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flex: 1 }}>
               <div style={{
                 width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700,
-                background: i < step ? 'var(--primary)' : i === step ? 'var(--primary)' : '#f3f4f6',
+                background: i <= step ? 'var(--primary)' : '#f3f4f6',
                 color: i <= step ? '#fff' : '#9ca3af',
                 transition: 'all 0.3s',
               }}>
@@ -331,7 +330,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>Contact Person</label>
-                <input {...register('contactName')} placeholder="Julian Thorne" style={{ ...inputStyle, paddingLeft: 16 }}
+                <input {...register('contactName')} placeholder="Full name" style={{ ...inputStyle, paddingLeft: 16 }}
                   onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; }}
                   onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; }}
                 />
@@ -361,7 +360,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
               <label style={labelStyle}>Password</label>
               <div style={{ position: 'relative' }}>
                 <span className="material-symbols-outlined" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', fontSize: 20 }}>lock</span>
-                <input {...register('password')} type={showRegPassword ? 'text' : 'password'} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" style={{ ...inputStyle, paddingRight: 48 }}
+                <input {...register('password')} type={showRegPassword ? 'text' : 'password'} placeholder="Min. 8 characters" style={{ ...inputStyle, paddingRight: 48 }}
                   onFocus={(e) => { e.target.style.borderColor = 'var(--primary)'; }}
                   onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; }}
                 />
@@ -393,7 +392,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
           </div>
         )}
 
-        {/* Step 1: Services & Rate Card */}
+        {/* Step 1: Services */}
         {step === 1 && (
           <div>
             <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 20 }}>Select the services your business offers. You can configure pricing after registration.</p>
@@ -426,7 +425,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
         {/* Step 2: KYC & Bank Details */}
         {step === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Required for compliance and payment processing. Documents must be in PDF or JPG format.</p>
+            <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Required for compliance and payment processing.</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={labelStyle}>GST Certificate Number</label>
@@ -461,16 +460,15 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
               />
               {errors.accountNumber && <p style={{ color: 'var(--error)', fontSize: 12, marginTop: 2 }}>{errors.accountNumber.message}</p>}
             </div>
-            {/* Document Upload placeholder */}
             <div style={{ padding: 24, border: '2px dashed #d1d5db', borderRadius: 10, textAlign: 'center', background: '#fafafa' }}>
               <span className="material-symbols-outlined" style={{ fontSize: 32, color: '#9ca3af', display: 'block', marginBottom: 8 }}>upload_file</span>
               <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Upload KYC Documents</p>
-              <p style={{ fontSize: 12, color: '#9ca3af' }}>GST Certificate, PAN Card, Bank Passbook â€” PDF or JPG</p>
+              <p style={{ fontSize: 12, color: '#9ca3af' }}>GST Certificate, PAN Card, Bank Passbook -- PDF or JPG</p>
             </div>
           </div>
         )}
 
-        {/* Navigation Buttons */}
+        {/* Navigation */}
         <div style={{ display: 'flex', gap: 12, marginTop: 28 }}>
           {step > 0 && (
             <button type="button" onClick={() => setStep(s => s - 1)} style={{
@@ -484,7 +482,7 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
               flex: 1, padding: '14px', borderRadius: 8,
               border: 'none', background: 'var(--primary)',
               color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer',
-            }}>Continue â†’</button>
+            }}>Continue</button>
           ) : (
             <Button type="primary" htmlType="submit" loading={loading} style={{
               flex: 1, height: 50, borderRadius: 8,
@@ -497,4 +495,3 @@ function RegisterForm({ onSuccess }: { onSuccess: () => void }) {
     </div>
   );
 }
-

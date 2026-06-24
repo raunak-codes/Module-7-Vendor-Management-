@@ -4,8 +4,10 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 export class UpdateVendorDto {
   @ApiPropertyOptional() @IsOptional() @IsString() businessName?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() contactPersonName?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() contactPhone?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() address?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() businessDescription?: string;
+  @ApiPropertyOptional() @IsOptional() @IsString() description?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() bankAccountNumber?: string;
   @ApiPropertyOptional() @IsOptional() @IsString() ifscCode?: string;
 }

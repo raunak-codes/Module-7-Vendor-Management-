@@ -22,12 +22,16 @@ export class MinioService implements OnModuleInit {
   }
 
   async onModuleInit() {
-    const exists = await this.client.bucketExists(this.bucket);
-    if (!exists) {
-      await this.client.makeBucket(this.bucket);
-      this.logger.log(`MinIO bucket "${this.bucket}" created`);
-    } else {
-      this.logger.log(`MinIO connected — bucket "${this.bucket}" ready`);
+    try {
+      const exists = await this.client.bucketExists(this.bucket);
+      if (!exists) {
+        await this.client.makeBucket(this.bucket);
+        this.logger.log(`MinIO bucket "${this.bucket}" created`);
+      } else {
+        this.logger.log(`MinIO connected — bucket "${this.bucket}" ready`);
+      }
+    } catch (err) {
+      this.logger.warn(`MinIO unavailable (${err.message}) — file uploads will fail until MinIO is started`);
     }
   }
 

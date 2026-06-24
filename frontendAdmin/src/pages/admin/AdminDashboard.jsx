@@ -14,30 +14,30 @@ import "./AdminDashboard.css";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [vendors, setVendors] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("adminToken");
-    fetch("http://localhost:5000/api/v1/vendors", {
+    fetch("http://localhost:5000/api/v1/vendors/admin/dashboard", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch dashboard data");
         return res.json();
       })
-      .then((data) => setVendors(data.data || []))
+      .then((d) => setStats(d.data ?? {}))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
 
-  const totalVendors = vendors.length;
-  const pendingVendors = vendors.filter(v => v.status === 'PENDING').length;
-  const activeVendors = vendors.filter(v => v.status === 'ACTIVE').length;
-
   if (loading) return <AdminLayout><div style={{ padding: 40 }}>Loading dashboard...</div></AdminLayout>;
   if (error) return <AdminLayout><div style={{ padding: 40, color: 'red' }}>Error: {error}</div></AdminLayout>;
+
+  const pendingKyc = stats?.vendorsByStatus?.find(s => s.status === 'PENDING')?._count ?? stats?.pendingKycRequests ?? 0;
+  const activeVendors = stats?.vendorsByStatus?.find(s => s.status === 'ACTIVE')?._count ?? 0;
+  const pendingAmt = stats?.pendingPaymentAmount ?? 0;
 
   return (
     <AdminLayout searchPlaceholder="Search vendors, orders, or invoices...">
@@ -49,11 +49,11 @@ export default function AdminDashboard() {
 
         {/* KPI row */}
         <div className="admin-dashboard__stats">
-          <StatCard label="Total Vendors" value={totalVendors.toString()} subValue="Registered" accentLeft />
-          <StatCard label="Pending Review" value={pendingVendors.toString()} subValue="Urgent" subValueType="warning" accentLeft />
-          <StatCard label="Active Vendors" value={activeVendors.toString()} subValue="Approved" accentLeft />
-          <StatCard label="Active POs" value="0" subValue="Coming Soon" accentLeft />
-          <StatCard label="Pending Payments" value="$0" subValue="Coming Soon" accentLeft />
+          <StatCard label="Total Vendors" value={String(stats?.totalVendors ?? 0)} subValue="Registered" accentLeft />
+          <StatCard label="Pending KYC" value={String(pendingKyc)} subValue="Urgent" subValueType="warning" accentLeft />
+          <StatCard label="Active Vendors" value={String(activeVendors)} subValue="Approved" accentLeft />
+          <StatCard label="Active POs" value={String(stats?.activePurchaseOrders ?? 0)} subValue="Issued/Accepted" accentLeft />
+          <StatCard label="Pending Payments" value={`INR ${parseFloat(pendingAmt).toLocaleString('en-IN')}`} subValue="Approved invoices" accentLeft />
         </div>
 
         {/* Charts row */}

@@ -13,15 +13,6 @@ import "./AdminPaymentManagement.css";
  * Matches Stitch screen: payment_management
  */
 
-const TIMELINE = [
-  { month: "May", actual: 60, projected: 75 },
-  { month: "Jun", actual: 65, projected: 80 },
-  { month: "Jul", actual: 85, projected: 90 },
-  { month: "Aug", actual: 50, projected: 70 },
-  { month: "Sep", actual: 45, projected: 60 },
-  { month: "Oct", actual: 70, projected: 85 },
-  { month: "Nov", actual: 0, projected: 95 },
-];
 
 const columns = [
   { key: "id", header: "Invoice/Payment ID", render: (r) => <span className="admin-payments__id">{r.invoiceNumber}</span> },
@@ -141,15 +132,30 @@ export default function AdminPaymentManagement() {
             </div>
           </div>
           <div className="admin-payments__bars">
-            {TIMELINE.map((t) => (
-              <div className="admin-payments__bar-col" key={t.month}>
-                <div className="admin-payments__bar-track">
-                  <div className="admin-payments__bar-projected" style={{ height: `${t.projected}%` }} />
-                  <div className="admin-payments__bar-actual" style={{ height: `${t.actual}%` }} />
+            {(() => {
+              // Build last-6-months timeline from real invoice data
+              const months = [];
+              const now = new Date();
+              for (let i = 5; i >= 0; i--) {
+                const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                months.push({ month: d.toLocaleString('en', { month: 'short' }), year: d.getFullYear(), m: d.getMonth() });
+              }
+              const totals = months.map(m => ({
+                ...m,
+                actual: transactions
+                  .filter(t => { const d = new Date(t.createdAt); return d.getMonth() === m.m && d.getFullYear() === m.year; })
+                  .reduce((a, t) => a + parseFloat(t.totalAmount || 0), 0),
+              }));
+              const max = Math.max(...totals.map(t => t.actual), 1);
+              return totals.map((t) => (
+                <div className="admin-payments__bar-col" key={t.month + t.year}>
+                  <div className="admin-payments__bar-track">
+                    <div className="admin-payments__bar-actual" style={{ height: `${Math.round((t.actual / max) * 100)}%` }} />
+                  </div>
+                  <span className="font-label-sm">{t.month}</span>
                 </div>
-                <span className="font-label-sm">{t.month}</span>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
           <div className="admin-payments__timeline-footer">
             <p className="font-body-md">

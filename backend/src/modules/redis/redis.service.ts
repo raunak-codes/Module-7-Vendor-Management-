@@ -1,32 +1,45 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService extends Redis implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(RedisService.name);
+  private redisAvailable = false;
+
   constructor(private configService: ConfigService) {
     super({
       host: configService.get('REDIS_HOST', 'localhost'),
       port: configService.get<number>('REDIS_PORT', 6379),
       lazyConnect: true,
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: 0,
+      retryStrategy: () => null,
+      enableOfflineQueue: false,
     });
   }
 
   async onModuleInit() {
-    await this.connect();
+    try {
+      await this.connect();
+      this.redisAvailable = true;
+      this.logger.log('Redis connected');
+    } catch (err) {
+      this.logger.warn(`Redis unavailable (${err.message}) — token blacklisting disabled`);
+    }
   }
 
   async onModuleDestroy() {
-    await this.quit();
+    try { await this.quit(); } catch {}
   }
 
   async blacklistToken(token: string, ttlSeconds = 86400) {
-    await this.set(`bl:${token}`, '1', 'EX', ttlSeconds);
+    if (!this.redisAvailable) return;
+    try { await this.set(`bl:${token}`, '1', 'EX', ttlSeconds); } catch {}
   }
 
   async isBlacklisted(token: string): Promise<boolean> {
-    return (await this.get(`bl:${token}`)) !== null;
+    if (!this.redisAvailable) return false;
+    try { return (await this.get(`bl:${token}`)) !== null; } catch { return false; }
   }
 
   async getCache<T>(key: string): Promise<T | null> {

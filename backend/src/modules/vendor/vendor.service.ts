@@ -16,7 +16,7 @@ export class VendorService {
   async getMyProfile(vendorId: string) {
     const vendor = await this.prisma.vendor.findUnique({
       where: { id: vendorId },
-      include: { category: true, kycDocuments: true, services: true },
+      include: { category: true, kycDocuments: true, services: true, user: { select: { id: true, email: true } } },
     });
     if (!vendor) throw new NotFoundException('Vendor profile not found');
     return vendor;
@@ -107,6 +107,36 @@ export class VendorService {
       }),
     ]);
     return vendor;
+  }
+
+  // ── Services ──────────────────────────────────────────────
+  async getServices(vendorId: string) {
+    return this.prisma.vendorService.findMany({ where: { vendorId }, orderBy: { createdAt: 'asc' } });
+  }
+
+  async createService(vendorId: string, body: { name: string; description?: string; rate?: number; currency?: string }) {
+    return this.prisma.vendorService.create({ data: { vendorId, name: body.name, description: body.description ?? null, rate: body.rate ?? null, currency: body.currency ?? 'INR' } });
+  }
+
+  async updateService(serviceId: string, vendorId: string, body: { name?: string; description?: string; rate?: number; currency?: string }) {
+    const svc = await this.prisma.vendorService.findFirst({ where: { id: serviceId, vendorId } });
+    if (!svc) throw new NotFoundException('Service not found');
+    return this.prisma.vendorService.update({ where: { id: serviceId }, data: body });
+  }
+
+  async deleteService(serviceId: string, vendorId: string) {
+    const svc = await this.prisma.vendorService.findFirst({ where: { id: serviceId, vendorId } });
+    if (!svc) throw new NotFoundException('Service not found');
+    return this.prisma.vendorService.delete({ where: { id: serviceId } });
+  }
+
+  // ── Work Orders for vendor ─────────────────────────────────
+  async getMyWorkOrders(vendorId: string) {
+    return this.prisma.workOrder.findMany({
+      where: { vendorId },
+      include: { purchaseOrder: { select: { poNumber: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async getDashboard(vendorId: string) {

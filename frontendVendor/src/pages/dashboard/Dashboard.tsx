@@ -1,63 +1,48 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Tag } from 'antd';
+import { Button } from 'antd';
 import { RiseOutlined } from '@ant-design/icons';
-
-const events = [
-  { name: 'Corporate Summit 2025', location: 'Mumbai', date: '15 Sept', budget: '₹15,00,000', services: 'Catering, Photography, AV Setup', status: 'Open for Bidding', statusColor: '#6ffbbe', statusTextColor: '#002113' },
-  { name: 'Luxury Wedding Expo', location: 'Delhi', date: '28 Sept', budget: '₹8,00,000', services: 'Decor, Lighting, Hospitality', status: 'Closing Soon', statusColor: '#d9e3f4', statusTextColor: '#121c28' },
-  { name: 'Product Launch Event', location: 'Bangalore', date: '10 Oct', budget: '₹12,00,000', services: 'Photography, Catering, Branding', status: 'Open for Bidding', statusColor: '#6ffbbe', statusTextColor: '#002113' },
-];
-
-const schedule = [
-  { month: 'OCT', day: '28', title: 'Grand Ballroom Gala', sub: 'Setup: 08:00 AM', bg: '#ffdad7', textColor: '#410004' },
-  { month: 'NOV', day: '02', title: 'Executive Summit', sub: 'Tech Check: 02:00 PM', bg: '#d9e3f4', textColor: '#121c28' },
-];
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [dashboardData, setDashboardData] = useState({
+  const [dashboardData, setDashboardData] = useState<any>({
     activeWorkOrders: 0,
-    pendingAmount: 0,
-    rating: 0,
-    recentActivity: []
+    pendingPaymentAmount: 0,
+    averageRating: 0,
+    totalRatings: 0,
+    recentActivity: [],
+    upcomingEvents: [],
   });
+  const [workOrders, setWorkOrders] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchDashboard();
+    const token = localStorage.getItem('token');
+    const headers = { Authorization: `Bearer ${token}` };
+
+    fetch('http://localhost:5000/api/v1/vendors/me/dashboard', { headers })
+      .then(r => r.json())
+      .then(d => setDashboardData(d.data ?? {}))
+      .catch(console.error);
+
+    fetch('http://localhost:5000/api/v1/work-orders?limit=5', { headers })
+      .then(r => r.json())
+      .then(d => setWorkOrders(d.data?.items ?? d.data ?? []))
+      .catch(console.error);
   }, []);
 
-  const fetchDashboard = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/v1/vendors/me/dashboard', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const { data } = await res.json();
-        setDashboardData({
-          activeWorkOrders: data.activeWorkOrders || 0,
-          pendingAmount: data.pendingAmount || 0,
-          rating: data.rating || 0,
-          recentActivity: data.recentActivity || []
-        });
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
+  const rating = parseFloat(dashboardData.averageRating ?? 0);
   const metricCards = [
-    { label: 'Active Work Orders', value: dashboardData.activeWorkOrders.toString(), trend: '', icon: 'trending_up', borderColor: 'var(--primary)' },
-    { label: 'Upcoming Events', value: '03', icon: 'event', borderColor: 'transparent' }, // Dummy events since no event schema
-    { label: 'Pending Payments', value: `₹ ${parseFloat(dashboardData.pendingAmount).toLocaleString()}`, subLabel: 'Due soon', subColor: 'var(--error)', borderColor: 'transparent' },
-    { label: 'Vendor Rating', value: parseFloat(dashboardData.rating).toFixed(1), subLabel: '/5', borderColor: 'transparent', isRating: true },
+    { label: 'Active Work Orders', value: String(dashboardData.activeWorkOrders ?? 0), icon: 'trending_up', borderColor: 'var(--primary)' },
+    { label: 'Event Allocations', value: String(dashboardData.upcomingEvents?.length ?? 0), icon: 'event', borderColor: 'transparent' },
+    { label: 'Pending Payments', value: `₹ ${parseFloat(dashboardData.pendingPaymentAmount ?? 0).toLocaleString('en-IN')}`, subLabel: 'Due soon', subColor: 'var(--error)', borderColor: 'transparent' },
+    { label: 'Vendor Rating', value: rating.toFixed(1), subLabel: '/5', borderColor: 'transparent', isRating: true },
   ];
 
+  const wonContracts = workOrders.filter(wo => wo.status === 'COMPLETED').length;
   const opportunityCards = [
-    { label: 'Available Opportunities', value: '3', icon: 'campaign', borderColor: 'var(--tertiary)' }, // Hardcoded mapping to Events above
-    { label: 'My Submitted Proposals', value: '0', icon: 'description', borderColor: 'var(--secondary)' },
-    { label: 'Won Contracts', value: '0', icon: 'workspace_premium', borderColor: 'var(--primary)' },
+    { label: 'Total Work Orders', value: String(workOrders.length), icon: 'campaign', borderColor: 'var(--tertiary)' },
+    { label: 'In Progress', value: String(workOrders.filter(wo => wo.status === 'IN_PROGRESS').length), icon: 'description', borderColor: 'var(--secondary)' },
+    { label: 'Completed', value: String(wonContracts), icon: 'workspace_premium', borderColor: 'var(--primary)' },
   ];
 
   return (
@@ -125,48 +110,41 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* Events & Opportunities */}
+      {/* Work Orders */}
       <div className="premium-card" style={{ marginBottom: 32, overflow: 'hidden' }}>
         <div style={{ padding: 24, borderBottom: '1px solid var(--surface-container)' }}>
-          <h3 style={{ fontFamily: 'Manrope', fontSize: 20, fontWeight: 600, marginBottom: 4 }}>Upcoming Events & Opportunities</h3>
-          <p style={{ fontSize: 14, color: 'var(--secondary)' }}>View upcoming events and submit proposals for projects that match your services.</p>
+          <h3 style={{ fontFamily: 'Manrope', fontSize: 20, fontWeight: 600, marginBottom: 4 }}>My Work Orders</h3>
+          <p style={{ fontSize: 14, color: 'var(--secondary)' }}>Track active work orders assigned to you.</p>
         </div>
         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {events.map((event, i) => (
-            <div key={i} style={{
-              padding: 16, borderRadius: 12, border: '1px solid var(--outline-variant)',
-              transition: 'border-color 0.2s',
-            }}
-              onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(133,18,23,0.3)')}
-              onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--outline-variant)')}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <div>
-                  <h5 style={{ fontWeight: 700, color: 'var(--on-surface)', fontFamily: 'Manrope', fontSize: 15, marginBottom: 4 }}>{event.name}</h5>
-                  <p style={{ fontSize: 12, color: 'var(--secondary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>location_on</span>
-                    {event.location} &nbsp;|&nbsp;
-                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>calendar_today</span>
-                    {event.date}
-                  </p>
+          {workOrders.length === 0 && <p style={{ color: 'var(--secondary)', fontSize: 14 }}>No work orders yet.</p>}
+          {workOrders.map((wo: any) => {
+            const statusMap: Record<string, { bg: string; text: string }> = {
+              ASSIGNED: { bg: '#d9e3f4', text: '#121c28' },
+              IN_PROGRESS: { bg: '#6ffbbe', text: '#002113' },
+              COMPLETED: { bg: '#dcfce7', text: '#14532d' },
+              CANCELLED: { bg: '#fee2e2', text: '#7f1d1d' },
+            };
+            const s = statusMap[wo.status] ?? { bg: '#f3f4f6', text: '#374151' };
+            return (
+              <div key={wo.id} style={{ padding: 16, borderRadius: 12, border: '1px solid var(--outline-variant)', transition: 'border-color 0.2s' }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'rgba(133,18,23,0.3)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'var(--outline-variant)')}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                  <div>
+                    <h5 style={{ fontWeight: 700, color: 'var(--on-surface)', fontFamily: 'Manrope', fontSize: 15, marginBottom: 2 }}>{wo.woNumber}</h5>
+                    <p style={{ fontSize: 13, color: 'var(--secondary)' }}>{wo.description ?? '—'}</p>
+                  </div>
+                  <span style={{ padding: '4px 10px', borderRadius: 9999, fontSize: 10, fontWeight: 700, background: s.bg, color: s.text, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{wo.status}</span>
                 </div>
-                <span style={{
-                  padding: '4px 10px', borderRadius: 9999, fontSize: 10, fontWeight: 700,
-                  background: event.statusColor, color: event.statusTextColor, textTransform: 'uppercase', letterSpacing: '0.05em',
-                }}>{event.status}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--primary)' }}>Budget: {event.budget}</p>
-                  <p style={{ fontSize: 12, color: 'var(--secondary)' }}>{event.services}</p>
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <Button size="small" type="text" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 12 }}>View Details</Button>
-                  <Button size="small" type="primary" style={{ background: 'var(--primary)', borderColor: 'var(--primary)', fontWeight: 700, fontSize: 12 }}>Submit Proposal</Button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <p style={{ fontSize: 12, color: 'var(--secondary)' }}>PO: {wo.purchaseOrder?.poNumber ?? 'N/A'} &nbsp;|&nbsp; Due: {wo.deadline ? new Date(wo.deadline).toLocaleDateString('en-IN') : 'TBD'}</p>
+                  <Button size="small" type="text" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 12 }} onClick={() => navigate('/work-orders')}>View</Button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -243,36 +221,36 @@ export default function Dashboard() {
             }}>View Report</button>
           </div>
 
-          {/* Schedule */}
+          {/* Schedule – upcoming work orders */}
           <div className="premium-card" style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h4 style={{ fontFamily: 'Manrope', fontSize: 20, fontWeight: 600 }}>Schedule</h4>
+              <h4 style={{ fontFamily: 'Manrope', fontSize: 20, fontWeight: 600 }}>Upcoming Work</h4>
               <span className="material-symbols-outlined" style={{ color: 'var(--secondary)', cursor: 'pointer' }}>calendar_today</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {schedule.map((item, i) => (
-                <div key={i} style={{
-                  display: 'flex', gap: 12, padding: 12, borderRadius: 12,
-                  background: 'var(--surface-container-low)', border: '1px solid transparent',
-                  transition: 'border-color 0.2s',
-                }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--outline-variant)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
-                >
-                  <div style={{
-                    width: 48, height: 48, background: item.bg, color: item.textColor,
-                    borderRadius: 8, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0,
-                  }}>
-                    <span style={{ fontSize: 10, letterSpacing: '0.05em' }}>{item.month}</span>
-                    <span style={{ fontSize: 18, fontFamily: 'Manrope', lineHeight: 1 }}>{item.day}</span>
+              {workOrders.filter(wo => ['ASSIGNED','IN_PROGRESS'].includes(wo.status)).slice(0, 3).map((wo: any) => {
+                const d = wo.deadline ? new Date(wo.deadline) : null;
+                return (
+                  <div key={wo.id} style={{ display: 'flex', gap: 12, padding: 12, borderRadius: 12, background: 'var(--surface-container-low)', border: '1px solid transparent', transition: 'border-color 0.2s' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--outline-variant)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.borderColor = 'transparent')}
+                  >
+                    <div style={{ width: 48, height: 48, background: '#ffdad7', color: '#410004', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>
+                      {d ? <>
+                        <span style={{ fontSize: 10, letterSpacing: '0.05em' }}>{d.toLocaleString('en', { month: 'short' }).toUpperCase()}</span>
+                        <span style={{ fontSize: 18, fontFamily: 'Manrope', lineHeight: 1 }}>{d.getDate()}</span>
+                      </> : <span className="material-symbols-outlined" style={{ fontSize: 22 }}>event</span>}
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 600, color: 'var(--on-surface)', fontSize: 14 }}>{wo.woNumber}</p>
+                      <p style={{ fontSize: 11, color: 'var(--secondary)', marginTop: 2 }}>{wo.description ?? wo.status}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p style={{ fontWeight: 600, color: 'var(--on-surface)', fontSize: 14 }}>{item.title}</p>
-                    <p style={{ fontSize: 11, color: 'var(--secondary)', marginTop: 2 }}>{item.sub}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+              {workOrders.filter(wo => ['ASSIGNED','IN_PROGRESS'].includes(wo.status)).length === 0 && (
+                <p style={{ fontSize: 13, color: 'var(--secondary)', textAlign: 'center', padding: '12px 0' }}>No upcoming work orders.</p>
+              )}
             </div>
           </div>
         </div>

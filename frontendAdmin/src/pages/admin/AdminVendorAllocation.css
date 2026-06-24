@@ -1,6 +1,6 @@
 .admin-allocation__grid {
   display: grid;
-  grid-template-columns: 280px 1fr 280px;
+  grid-template-columns: 1fr 340px;
   gap: var(--admin-gutter);
   align-items: start;
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Patch, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Put, Post, Patch, Delete, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { VendorService } from './vendor.service';
@@ -13,6 +13,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 export class VendorController {
   constructor(private vendorService: VendorService) {}
 
+  // ── Vendor self routes (me/*) — must come before :vendorId ──
   @Get('me')
   @Roles(Role.VENDOR)
   @ApiOperation({ summary: 'Get own vendor profile' })
@@ -37,6 +38,40 @@ export class VendorController {
     return { message: 'Profile updated', data };
   }
 
+  // ── Services CRUD (me/services/*) — before :vendorId/approve etc ──
+  @Get('me/services')
+  @Roles(Role.VENDOR)
+  @ApiOperation({ summary: 'List own services' })
+  async getMyServices(@CurrentUser() user: any) {
+    const data = await this.vendorService.getServices(user.vendorId);
+    return { message: 'Services fetched', data };
+  }
+
+  @Post('me/services')
+  @Roles(Role.VENDOR)
+  @ApiOperation({ summary: 'Add a service' })
+  async createService(@CurrentUser() user: any, @Body() body: any) {
+    const data = await this.vendorService.createService(user.vendorId, body);
+    return { message: 'Service created', data };
+  }
+
+  @Patch('me/services/:serviceId')
+  @Roles(Role.VENDOR)
+  @ApiOperation({ summary: 'Update a service' })
+  async updateService(@CurrentUser() user: any, @Param('serviceId') serviceId: string, @Body() body: any) {
+    const data = await this.vendorService.updateService(serviceId, user.vendorId, body);
+    return { message: 'Service updated', data };
+  }
+
+  @Delete('me/services/:serviceId')
+  @Roles(Role.VENDOR)
+  @ApiOperation({ summary: 'Delete a service' })
+  async deleteService(@CurrentUser() user: any, @Param('serviceId') serviceId: string) {
+    await this.vendorService.deleteService(serviceId, user.vendorId);
+    return { message: 'Service deleted' };
+  }
+
+  // ── Admin list/stats routes — before :vendorId param ──
   @Get('admin/dashboard')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '[ADMIN] Dashboard stats' })
@@ -61,6 +96,7 @@ export class VendorController {
     return { message: 'Vendors fetched', data: vendors, pagination };
   }
 
+  // ── Parameterized :vendorId routes — must come last ──
   @Get(':vendorId')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: '[ADMIN] Get a vendor by ID' })

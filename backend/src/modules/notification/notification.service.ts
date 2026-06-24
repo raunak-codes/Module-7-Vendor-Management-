@@ -1,25 +1,42 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationGateway } from './notification.gateway';
+import { MailerService } from './mailer.service';
 
 @Injectable()
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
   constructor(
-    @InjectQueue('notifications') private queue: Queue,
     private prisma: PrismaService,
     private gateway: NotificationGateway,
+    private mailer: MailerService,
   ) {}
 
+  /** Send an in-app notification to a specific user (and optionally an email). */
   async enqueue(type: string, data: Record<string, any>) {
     try {
-      await this.queue.add(type, { type, data });
+      if (data.userId) {
+        const notif = await this.prisma.notification.create({
+          data: {
+            userId: data.userId,
+            type: data.notifType ?? 'INFO',
+            title: data.title ?? type,
+            message: data.message ?? '',
+          },
+        });
+        this.gateway.sendToUser(data.userId, 'notification:new', {
+          id: notif.id, type: notif.type, title: notif.title, message: notif.message, isRead: false, createdAt: notif.createdAt,
+        });
+      }
+      if (data.email) {
+        this.mailer.send(type, data).catch((err) =>
+          this.logger.warn(`Email failed for "${type}": ${err.message}`),
+        );
+      }
     } catch (err) {
-      this.logger.warn(`Failed to enqueue notification "${type}": ${err.message}`);
+      this.logger.warn(`Failed to send notification "${type}": ${err.message}`);
     }
   }
 

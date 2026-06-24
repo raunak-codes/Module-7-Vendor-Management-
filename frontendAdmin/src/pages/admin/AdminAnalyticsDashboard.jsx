@@ -11,68 +11,57 @@ import "./AdminAnalyticsDashboard.css";
  * Matches Stitch screen: analytics_dashboard
  */
 
-const SPEND_LINE_POINTS = [
-  { x: 0, y: 150 },
-  { x: 100, y: 120 },
-  { x: 200, y: 160 },
-  { x: 300, y: 80 },
-  { x: 400, y: 100 },
-  { x: 500, y: 40 },
-  { x: 600, y: 60 },
-];
-
-const SPEND_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-
-const VENDOR_PERFORMANCE = [
-  { name: "Luxe Events Production", score: 98 },
-  { name: "Grand Horizon Venues", score: 92 },
-  { name: "Prime Logistics Co.", score: 85 },
-  { name: "Gourmet Elite Catering", score: 78 },
-];
-
-const RATINGS_HISTOGRAM = [
-  { label: "1★", pct: 20, highlight: false, count: null },
-  { label: "2★", pct: 17, highlight: false, count: null },
-  { label: "3★", pct: 40, highlight: false, count: null },
-  { label: "4★", pct: 80, highlight: "primary", count: "142 Vendors" },
-  { label: "5★", pct: 100, highlight: "secondary", count: "218 Vendors" },
-];
-
-const TOP_PARTNERS = [
-  { initials: "AV", bg: "var(--admin-gradient)", name: "Visionary Audio Visual", category: "AV & Light Production", rating: "4.9/5", tier: "Excellent" },
-  { initials: "CH", bg: "#caa802", name: "City Heights Suites", category: "Venue & Accomodation", rating: "4.7/5", tier: "Good" },
-  { initials: "ML", bg: "var(--admin-secondary)", name: "Metro Logistics Pro", category: "Shipping & Freight", rating: "4.6/5", tier: "Good" },
-];
-
-const SLA_COLUMNS = ["AV", "Catering", "Venues", "Logi", "Staff"];
-const SLA_ROWS = [
-  { region: "North America", cells: [0, 0.2, 0, 0, 0] },
-  { region: "Europe", cells: [0, 0, 0.6, 0, 0.2] },
-  { region: "Asia Pacific", cells: [0.4, 0, 1, 0, 0] },
-  { region: "MENA", cells: [0, 0.8, 0, 0.2, 0] },
-];
-
 export default function AdminAnalyticsDashboard() {
   const [stats, setStats] = useState(null);
+  const [vendors, setVendors] = useState([]);
+  const [invoices, setInvoices] = useState([]);
 
   useEffect(() => {
-    fetchStats();
+    const token = localStorage.getItem('adminToken');
+    const h = { Authorization: `Bearer ${token}` };
+
+    Promise.all([
+      fetch('http://localhost:5000/api/v1/vendors/admin/dashboard', { headers: h }).then(r => r.json()),
+      fetch('http://localhost:5000/api/v1/vendors?limit=100', { headers: h }).then(r => r.json()),
+      fetch('http://localhost:5000/api/v1/invoices?limit=200', { headers: h }).then(r => r.json()),
+    ]).then(([dashRes, vendorRes, invRes]) => {
+      setStats(dashRes.data ?? {});
+      setVendors(vendorRes.data?.items ?? vendorRes.data ?? []);
+      setInvoices(invRes.data?.items ?? invRes.data ?? []);
+    }).catch(console.error);
   }, []);
 
-  const fetchStats = async () => {
-    try {
-      const token = localStorage.getItem('adminToken');
-      const res = await fetch('http://localhost:5000/api/v1/vendors/admin/dashboard', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const { data } = await res.json();
-        setStats(data);
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  // Derived: monthly spend (last 6 months from real invoices)
+  const spendMonths = (() => {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+      const total = invoices
+        .filter(inv => { const id = new Date(inv.createdAt); return id.getMonth() === d.getMonth() && id.getFullYear() === d.getFullYear(); })
+        .reduce((a, inv) => a + parseFloat(inv.totalAmount || 0), 0);
+      return { label: d.toLocaleString('en', { month: 'short' }), total };
+    });
+  })();
+  const maxSpend = Math.max(...spendMonths.map(m => m.total), 1);
+  const spendPoints = spendMonths.map((m, i) => ({ x: i * 120, y: Math.round(180 - (m.total / maxSpend) * 160) }));
+
+  // Derived: top vendors by avg rating
+  const topVendors = [...vendors]
+    .filter(v => v.ratings?.length > 0 || (v._avg?.rating))
+    .sort((a, b) => (b._avg?.rating ?? 0) - (a._avg?.rating ?? 0))
+    .slice(0, 4)
+    .map(v => ({ name: v.businessName, score: Math.round((v._avg?.rating ?? 4) * 20) }));
+  const vendorPerf = topVendors.length > 0 ? topVendors : [];
+
+  // Derived: ratings histogram
+  const ratingCounts = [0, 0, 0, 0, 0];
+  vendors.forEach(v => { if (v.averageRating) { const r = Math.round(parseFloat(v.averageRating)); if (r >= 1 && r <= 5) ratingCounts[r - 1]++; } });
+  const maxRating = Math.max(...ratingCounts, 1);
+  const ratingsHist = [1, 2, 3, 4, 5].map(s => ({
+    label: `${s}★`,
+    pct: Math.round((ratingCounts[s - 1] / maxRating) * 100),
+    count: ratingCounts[s - 1] > 0 ? `${ratingCounts[s - 1]} vendors` : null,
+  }));
 
   const getColors = (idx) => {
     const colors = ["var(--admin-primary)", "var(--admin-secondary)", "#caa802", "#1f8b4c"];
@@ -139,20 +128,18 @@ export default function AdminAnalyticsDashboard() {
             </div>
             <div className="admin-analytics__line-chart">
               <svg viewBox="0 0 600 200" preserveAspectRatio="none">
-                <path
-                  d={`M${SPEND_LINE_POINTS.map((p) => `${p.x},${p.y}`).join(" L")}`}
-                  fill="none"
-                  stroke="#610000"
-                  strokeWidth="3"
-                />
-                {SPEND_LINE_POINTS.map((p) => (
+                {spendPoints.length > 1 && (
+                  <path
+                    d={`M${spendPoints.map((p) => `${p.x},${p.y}`).join(" L")}`}
+                    fill="none" stroke="#610000" strokeWidth="3"
+                  />
+                )}
+                {spendPoints.map((p) => (
                   <circle key={p.x} cx={p.x} cy={p.y} fill="#610000" r="4" />
                 ))}
               </svg>
               <div className="admin-analytics__line-months font-label-sm">
-                {SPEND_MONTHS.map((m) => (
-                  <span key={m}>{m}</span>
-                ))}
+                {spendMonths.map((m) => <span key={m.label}>{m.label}</span>)}
               </div>
             </div>
           </div>
@@ -188,7 +175,9 @@ export default function AdminAnalyticsDashboard() {
             <h3 className="admin-section-title">Vendor Performance</h3>
             <p className="font-label-sm admin-analytics__muted" style={{ marginBottom: 28 }}>Efficiency score by top 5 vendors</p>
             <div className="admin-analytics__bars-list">
-              {VENDOR_PERFORMANCE.map((v) => (
+              {vendorPerf.length === 0 ? (
+                <p style={{ color: '#6b7280', fontSize: 13 }}>No vendor performance data yet.</p>
+              ) : vendorPerf.map((v) => (
                 <div key={v.name} className="admin-analytics__bar-row">
                   <div className="font-label-bold admin-analytics__bar-label-row">
                     <span>{v.name}</span>
@@ -207,11 +196,11 @@ export default function AdminAnalyticsDashboard() {
             <h3 className="admin-section-title">Vendor Ratings</h3>
             <p className="font-label-sm admin-analytics__muted" style={{ marginBottom: 28 }}>Distribution of ratings across all partners</p>
             <div className="admin-analytics__histogram">
-              {RATINGS_HISTOGRAM.map((bar) => (
+              {ratingsHist.map((bar, i) => (
                 <div key={bar.label} className="admin-analytics__hist-col">
                   <div
-                    className={`admin-analytics__hist-bar${bar.highlight ? ` admin-analytics__hist-bar--${bar.highlight}` : ""}`}
-                    style={{ height: `${bar.pct}%` }}
+                    className={`admin-analytics__hist-bar${i >= 3 ? ` admin-analytics__hist-bar--${i === 4 ? 'secondary' : 'primary'}` : ""}`}
+                    style={{ height: `${bar.pct || 4}%` }}
                     title={bar.count || ""}
                   />
                   <span className="font-label-sm">{bar.label}</span>
@@ -227,62 +216,62 @@ export default function AdminAnalyticsDashboard() {
               <button className="admin-btn admin-btn--ghost">View All</button>
             </div>
             <div className="admin-analytics__partner-list">
-              {TOP_PARTNERS.map((p) => (
-                <div key={p.name} className="admin-analytics__partner-row">
-                  <div className="admin-analytics__partner-avatar" style={{ background: p.bg }}>
-                    {p.initials}
+              {vendors.slice(0, 3).length === 0 ? (
+                <p style={{ color: '#6b7280', fontSize: 13 }}>No vendor data yet.</p>
+              ) : vendors.slice(0, 3).map((v, idx) => {
+                const colors = ["var(--admin-gradient)", "#caa802", "var(--admin-secondary)"];
+                const avg = v.averageRating ? parseFloat(v.averageRating).toFixed(1) : 'N/A';
+                const tier = avg >= 4.5 ? 'Excellent' : avg >= 4 ? 'Good' : avg >= 3 ? 'Average' : 'New';
+                return (
+                  <div key={v.id} className="admin-analytics__partner-row">
+                    <div className="admin-analytics__partner-avatar" style={{ background: colors[idx] }}>
+                      {(v.businessName || '?').substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="admin-analytics__partner-info">
+                      <p className="font-body-md admin-analytics__partner-name">{v.businessName}</p>
+                      <p className="font-label-sm admin-analytics__muted">{v.category?.name ?? v.status}</p>
+                    </div>
+                    <div className="admin-analytics__partner-meta">
+                      <p className="font-body-md admin-analytics__partner-rating">{avg !== 'N/A' ? `${avg}/5` : '—'}</p>
+                      <p className="font-label-sm admin-analytics__muted">{tier}</p>
+                    </div>
                   </div>
-                  <div className="admin-analytics__partner-info">
-                    <p className="font-body-md admin-analytics__partner-name">{p.name}</p>
-                    <p className="font-label-sm admin-analytics__muted">{p.category}</p>
-                  </div>
-                  <div className="admin-analytics__partner-meta">
-                    <p className="font-body-md admin-analytics__partner-rating">{p.rating}</p>
-                    <p className="font-label-sm admin-analytics__muted">{p.tier}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          {/* SLA Heatmap */}
+          {/* Vendor Status Breakdown */}
           <div className="admin-card admin-analytics__sla">
             <div className="admin-analytics__card-head">
-              <h3 className="admin-section-title">SLA Compliance Heatmap</h3>
-              <div className="admin-analytics__sla-key font-label-sm">
-                <span>Low Risk</span>
-                <div className="admin-analytics__sla-key-bar">
-                  <div style={{ background: "var(--admin-surface-container)" }} />
-                  <div style={{ background: "rgba(181,27,30,0.3)" }} />
-                  <div style={{ background: "rgba(181,27,30,0.6)" }} />
-                  <div style={{ background: "var(--admin-secondary)" }} />
-                </div>
-                <span>Critical</span>
-              </div>
+              <h3 className="admin-section-title">Vendor Status Breakdown</h3>
             </div>
             <p className="font-label-sm admin-analytics__muted" style={{ marginBottom: 20 }}>
-              Service level agreement breaches by region and category
+              Distribution of vendors by onboarding status
             </p>
-            <div className="admin-analytics__heatmap">
-              <div />
-              {SLA_COLUMNS.map((col) => (
-                <div key={col} className="admin-analytics__heatmap-col-label font-label-sm">
-                  {col}
-                </div>
-              ))}
-              {SLA_ROWS.map((row) => (
-                <div className="admin-analytics__heatmap-row" key={row.region}>
-                  <div className="admin-analytics__heatmap-row-label font-label-bold">{row.region}</div>
-                  {row.cells.map((intensity, i) => (
-                    <div
-                      key={`${row.region}-${i}`}
-                      className="admin-analytics__heatmap-cell"
-                      style={{ background: `rgba(181, 27, 30, ${intensity || 0.04})` }}
-                    />
+            {(() => {
+              const STATUS_COLORS_MAP = { ACTIVE: '#16a34a', PENDING: '#d97706', REJECTED: '#dc2626', BLACKLISTED: '#7c3aed', INACTIVE: '#6b7280' };
+              const counts = {};
+              vendors.forEach(v => { counts[v.status] = (counts[v.status] || 0) + 1; });
+              const total = vendors.length || 1;
+              const entries = Object.entries(counts);
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {entries.length === 0 && <p style={{ color: '#6b7280', fontSize: 13 }}>No vendor data yet.</p>}
+                  {entries.map(([status, count]) => (
+                    <div key={status}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: STATUS_COLORS_MAP[status] || '#374151' }}>{status}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>{count} ({Math.round((count / total) * 100)}%)</span>
+                      </div>
+                      <div style={{ height: 8, background: 'var(--admin-surface-container)', borderRadius: 9999, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.round((count / total) * 100)}%`, background: STATUS_COLORS_MAP[status] || '#6b7280', borderRadius: 9999, transition: 'width 0.8s ease' }} />
+                      </div>
+                    </div>
                   ))}
                 </div>
-              ))}
-            </div>
+              );
+            })()}
           </div>
         </div>
 
