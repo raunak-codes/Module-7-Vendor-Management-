@@ -134,6 +134,12 @@ textarea.admin-input {
   white-space: nowrap;
 }
 
+.admin-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: auto;
+}
+
 .admin-btn--primary {
   background-color: var(--admin-primary);
   color: #ffffff;
@@ -160,6 +166,20 @@ textarea.admin-input {
 
 .admin-btn--danger:hover {
   opacity: 0.9;
+}
+
+.admin-btn--success {
+  background-color: #16a34a;
+  color: #ffffff;
+}
+
+.admin-btn--success:hover {
+  opacity: 0.9;
+}
+
+.admin-btn--sm {
+  padding: 5px 12px;
+  font-size: 0.75rem;
 }
 
 .admin-btn--ghost {

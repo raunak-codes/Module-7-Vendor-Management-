@@ -84,7 +84,7 @@ const AdminWorkOrderDetails = () => {
           breadcrumb={[{ label: "Work Orders" }, { label: wo.woNumber }]}
           title={
             <span className="admin-wo-details__title-row">
-              {wo.description} <StatusBadge status={wo.status.toLowerCase()} label={wo.status} />
+              {wo.description || wo.woNumber} <StatusBadge status={wo.status.toLowerCase()} label={wo.status} />
             </span>
           }
           actions={
@@ -105,7 +105,37 @@ const AdminWorkOrderDetails = () => {
           <div className="admin-wo-details__main">
             <div className="admin-card admin-wo-details__section">
               <h3 className="admin-section-title">Task Details</h3>
-              <p className="admin-wo-details__desc">{wo.description}</p>
+              {wo.description && <p className="admin-wo-details__desc">{wo.description}</p>}
+
+              {wo.tasks && wo.tasks.length > 0 && (
+                <div style={{ marginBottom: 20 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>
+                    Tasks from PO {wo.purchaseOrder?.poNumber}
+                  </p>
+                  <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, overflow: "hidden" }}>
+                    {wo.tasks.map((task, idx) => {
+                      const line = task.purchaseOrderLine;
+                      return (
+                        <div key={task.id} style={{
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "10px 14px", fontSize: 13,
+                          background: idx % 2 === 0 ? "#fff" : "#f9fafb",
+                          borderBottom: idx < wo.tasks.length - 1 ? "1px solid #e2e8f0" : "none",
+                        }}>
+                          <span style={{ fontWeight: 600, color: "#1e293b", flex: 1 }}>{line?.description}</span>
+                          <span style={{ color: "#6b7280", marginLeft: 12, whiteSpace: "nowrap" }}>
+                            Qty {line?.quantity} × ₹{Number(line?.unitPrice ?? 0).toLocaleString("en-IN")}
+                          </span>
+                          <span style={{ fontWeight: 700, color: "#1e293b", marginLeft: 16, whiteSpace: "nowrap" }}>
+                            ₹{Number(line?.totalPrice ?? 0).toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="admin-wo-details__meta-grid">
                 <div><span className="admin-label">WO Reference</span><p>{wo.woNumber}</p></div>
                 <div><span className="admin-label">PO Reference</span><p>{wo.purchaseOrder?.poNumber || 'N/A'}</p></div>

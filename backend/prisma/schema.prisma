@@ -258,6 +258,8 @@ model PurchaseOrderLine {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
+  workOrderTasks  WorkOrderTask[]
+
   @@index([purchaseOrderId])
 }
 
@@ -266,11 +268,11 @@ model WorkOrder {
   woNumber        String          @unique
   vendorId        String
   vendor          Vendor          @relation(fields: [vendorId], references: [id])
-  purchaseOrderId String?
-  purchaseOrder   PurchaseOrder?  @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder   @relation(fields: [purchaseOrderId], references: [id])
   eventId         String?
   status          WorkOrderStatus @default(DRAFT)
-  description     String
+  description     String?
   startDate       DateTime?
   endDate         DateTime?
 
@@ -279,9 +281,24 @@ model WorkOrder {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
+  tasks           WorkOrderTask[]
+
   @@index([vendorId])
   @@index([purchaseOrderId])
   @@index([status])
+}
+
+model WorkOrderTask {
+  id                  String            @id @default(uuid())
+  workOrderId         String
+  workOrder           WorkOrder         @relation(fields: [workOrderId], references: [id])
+  purchaseOrderLineId String
+  purchaseOrderLine   PurchaseOrderLine @relation(fields: [purchaseOrderLineId], references: [id])
+  createdAt           DateTime          @default(now())
+
+  @@unique([workOrderId, purchaseOrderLineId])
+  @@index([workOrderId])
+  @@index([purchaseOrderLineId])
 }
 
 model VendorInvoice {

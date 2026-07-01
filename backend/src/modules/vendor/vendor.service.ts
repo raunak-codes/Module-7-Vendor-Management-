@@ -67,6 +67,15 @@ export class VendorService {
   }
 
   async approve(vendorId: string) {
+    const docs = await this.prisma.vendorKycDocument.findMany({ where: { vendorId } });
+    if (docs.length === 0)
+      throw new BadRequestException('Cannot approve: vendor has not uploaded any KYC documents');
+    const unverified = docs.filter(d => d.status !== 'VERIFIED');
+    if (unverified.length > 0)
+      throw new BadRequestException(
+        `Cannot approve: ${unverified.length} document(s) still pending review — verify all KYC documents before approving the vendor`
+      );
+
     const vendor = await this.prisma.vendor.update({
       where: { id: vendorId },
       data: { status: 'ACTIVE' },

@@ -5,7 +5,7 @@ import AdminLayout from "../../layouts/AdminLayout";
 import "./admin-tokens.css";
 import "./AdminWorkOrderKanban.css";
 
-const EMPTY_FORM = { vendorId: "", description: "", startDate: "", endDate: "", purchaseOrderId: "", eventId: "" };
+const EMPTY_FORM = { vendorId: "", description: "", startDate: "", endDate: "", purchaseOrderId: "", eventId: "", lineItemIds: [] };
 
 const AdminWorkOrderKanban = () => {
   const navigate = useNavigate();
@@ -19,10 +19,12 @@ const AdminWorkOrderKanban = () => {
   const [dragItem, setDragItem] = useState(null);
 
   // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [vendors, setVendors]     = useState([]);
-  const [pos, setPos]             = useState([]);
-  const [form, setForm]           = useState(EMPTY_FORM);
+  const [showModal, setShowModal]   = useState(false);
+  const [vendors, setVendors]       = useState([]);
+  const [pos, setPos]               = useState([]);
+  const [poLines, setPoLines]       = useState([]);
+  const [loadingLines, setLoadingLines] = useState(false);
+  const [form, setForm]             = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError]   = useState(null);
 
@@ -37,13 +39,48 @@ const AdminWorkOrderKanban = () => {
       .then((r) => r.json())
       .then((d) => setVendors((d.data?.items ?? d.data ?? []).filter((v) => v.status === "ACTIVE")))
       .catch(() => {});
-    fetch("http://localhost:5000/api/v1/purchase-orders?limit=100", {
+  }, [showModal]);
+
+  // When vendor changes, reset PO and line items; reload POs filtered by vendor
+  useEffect(() => {
+    if (!form.vendorId) { setPos([]); setPoLines([]); return; }
+    const token = localStorage.getItem("adminToken");
+    fetch(`http://localhost:5000/api/v1/purchase-orders?limit=100&vendorId=${form.vendorId}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
       .then((d) => setPos(d.data?.items ?? d.data ?? []))
       .catch(() => {});
-  }, [showModal]);
+    setForm((f) => ({ ...f, purchaseOrderId: "", lineItemIds: [] }));
+    setPoLines([]);
+  }, [form.vendorId]);
+
+  // When PO changes, fetch its line items
+  useEffect(() => {
+    if (!form.purchaseOrderId) { setPoLines([]); setForm((f) => ({ ...f, lineItemIds: [] })); return; }
+    setLoadingLines(true);
+    const token = localStorage.getItem("adminToken");
+    fetch(`http://localhost:5000/api/v1/purchase-orders/${form.purchaseOrderId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        const lines = d.data?.lines ?? [];
+        setPoLines(lines);
+        setForm((f) => ({ ...f, lineItemIds: [] }));
+      })
+      .catch(() => setPoLines([]))
+      .finally(() => setLoadingLines(false));
+  }, [form.purchaseOrderId]);
+
+  const toggleLineItem = (id) => {
+    setForm((f) => ({
+      ...f,
+      lineItemIds: f.lineItemIds.includes(id)
+        ? f.lineItemIds.filter((x) => x !== id)
+        : [...f.lineItemIds, id],
+    }));
+  };
 
   const fetchOrders = async () => {
     try {
@@ -53,7 +90,7 @@ const AdminWorkOrderKanban = () => {
       });
       if (!res.ok) throw new Error("Failed to fetch work orders");
       const { data } = await res.json();
-      const items = data?.items ?? data ?? [];
+      const items = data?.wos ?? data?.items ?? data ?? [];
 
       const next = {
         todo:       { label: "To Do",       color: "#8e706b", items: [] },
@@ -61,8 +98,10 @@ const AdminWorkOrderKanban = () => {
         completed:  { label: "Completed",   color: "#1f8b4c", items: [] },
       };
       items.forEach((wo) => {
+        const taskSummary = wo.tasks?.map((t) => t.purchaseOrderLine?.description).filter(Boolean).join(", ");
         const item = {
-          id: wo.id, woNumber: wo.woNumber, title: wo.description,
+          id: wo.id, woNumber: wo.woNumber,
+          title: wo.description || taskSummary || wo.woNumber,
           vendor: wo.vendor?.businessName || "Unknown Vendor", status: wo.status,
           tag: wo.status,
           tagColor: wo.status === "COMPLETED" ? "success" : wo.status === "IN_PROGRESS" ? "info" : "warning",
@@ -108,21 +147,25 @@ const AdminWorkOrderKanban = () => {
     setDragItem(null);
   };
 
+  const closeModal = () => { setShowModal(false); setForm(EMPTY_FORM); setFormError(null); setPoLines([]); };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setFormError(null);
     if (!form.vendorId) return setFormError("Please select a vendor.");
-    if (!form.description.trim()) return setFormError("Description is required.");
+    if (!form.purchaseOrderId) return setFormError("A Purchase Order is required.");
+    if (form.lineItemIds.length === 0) return setFormError("Select at least one line item as a task.");
 
     setSubmitting(true);
     try {
       const token = localStorage.getItem("adminToken");
       const payload = {
         vendorId: form.vendorId,
-        description: form.description,
+        purchaseOrderId: form.purchaseOrderId,
+        lineItemIds: form.lineItemIds,
+        ...(form.description.trim() && { description: form.description.trim() }),
         ...(form.startDate && { startDate: form.startDate }),
         ...(form.endDate && { endDate: form.endDate }),
-        ...(form.purchaseOrderId && { purchaseOrderId: form.purchaseOrderId }),
         ...(form.eventId && { eventId: form.eventId }),
       };
       const res = await fetch("http://localhost:5000/api/v1/work-orders", {
@@ -133,10 +176,11 @@ const AdminWorkOrderKanban = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Failed to create work order");
 
-      // Add to To Do column immediately
       const wo = data.data;
+      const taskSummary = wo.tasks?.map((t) => t.purchaseOrderLine?.description).filter(Boolean).join(", ");
       const newItem = {
-        id: wo.id, woNumber: wo.woNumber, title: wo.description,
+        id: wo.id, woNumber: wo.woNumber,
+        title: wo.description || taskSummary || wo.woNumber,
         vendor: vendors.find((v) => v.id === form.vendorId)?.businessName || "Unknown",
         status: wo.status, tag: wo.status, tagColor: "warning",
         meta: new Date(wo.createdAt).toLocaleDateString(),
@@ -145,8 +189,7 @@ const AdminWorkOrderKanban = () => {
         ...prev,
         todo: { ...prev.todo, items: [...prev.todo.items, newItem] },
       }));
-      setShowModal(false);
-      setForm(EMPTY_FORM);
+      closeModal();
     } catch (err) {
       setFormError(err.message);
     } finally {
@@ -223,13 +266,14 @@ const AdminWorkOrderKanban = () => {
 
       {/* Create Work Order Modal */}
       {showModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
-          onClick={(e) => { if (e.target === e.currentTarget) { setShowModal(false); setForm(EMPTY_FORM); setFormError(null); } }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: 32, width: "100%", maxWidth: 520, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+        >
+          <div style={{ background: "#fff", borderRadius: 16, padding: 32, width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
               <h2 style={{ fontSize: 20, fontWeight: 700, color: "#1e293b", margin: 0 }}>Assign Work Order</h2>
-              <button onClick={() => { setShowModal(false); setForm(EMPTY_FORM); setFormError(null); }}
-                style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6b7280", lineHeight: 1 }}>×</button>
+              <button onClick={closeModal} style={{ background: "none", border: "none", fontSize: 22, cursor: "pointer", color: "#6b7280", lineHeight: 1 }}>×</button>
             </div>
 
             {formError && (
@@ -239,6 +283,7 @@ const AdminWorkOrderKanban = () => {
             )}
 
             <form onSubmit={handleCreate} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Vendor */}
               <div>
                 <label style={lbl}>Vendor *</label>
                 <select style={inp} value={form.vendorId} onChange={(e) => setForm((f) => ({ ...f, vendorId: e.target.value }))} required>
@@ -249,17 +294,86 @@ const AdminWorkOrderKanban = () => {
                 </select>
               </div>
 
+              {/* Purchase Order — required */}
               <div>
-                <label style={lbl}>Task Description *</label>
+                <label style={lbl}>Purchase Order *</label>
+                <select
+                  style={inp}
+                  value={form.purchaseOrderId}
+                  onChange={(e) => setForm((f) => ({ ...f, purchaseOrderId: e.target.value }))}
+                  disabled={!form.vendorId}
+                  required
+                >
+                  <option value="">{form.vendorId ? "Select a purchase order..." : "Select a vendor first"}</option>
+                  {pos.map((po) => (
+                    <option key={po.id} value={po.id}>
+                      {po.poNumber ?? po.id.slice(0, 8)} — ₹{Number(po.totalAmount ?? 0).toLocaleString("en-IN")} ({po.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Line items checklist */}
+              {form.purchaseOrderId && (
+                <div>
+                  <label style={lbl}>Tasks (select line items) *</label>
+                  {loadingLines ? (
+                    <p style={{ fontSize: 13, color: "#6b7280" }}>Loading line items...</p>
+                  ) : poLines.length === 0 ? (
+                    <p style={{ fontSize: 13, color: "#b91c1c" }}>This PO has no line items.</p>
+                  ) : (
+                    <div style={{ border: "1px solid #e2e8f0", borderRadius: 8, overflow: "hidden" }}>
+                      {poLines.map((line, idx) => {
+                        const checked = form.lineItemIds.includes(line.id);
+                        return (
+                          <label
+                            key={line.id}
+                            style={{
+                              display: "flex", alignItems: "flex-start", gap: 10, padding: "10px 14px",
+                              cursor: "pointer", background: checked ? "#f0fdf4" : idx % 2 === 0 ? "#fff" : "#f9fafb",
+                              borderBottom: idx < poLines.length - 1 ? "1px solid #e2e8f0" : "none",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleLineItem(line.id)}
+                              style={{ marginTop: 2, accentColor: "#16a34a", width: 15, height: 15, flexShrink: 0 }}
+                            />
+                            <div style={{ flex: 1 }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "#1e293b" }}>{line.description}</span>
+                              <span style={{ fontSize: 12, color: "#6b7280", marginLeft: 8 }}>
+                                Qty {line.quantity} × ₹{Number(line.unitPrice).toLocaleString("en-IN")}
+                              </span>
+                            </div>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: "#1e293b", whiteSpace: "nowrap" }}>
+                              ₹{Number(line.totalPrice).toLocaleString("en-IN")}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {form.lineItemIds.length > 0 && (
+                    <p style={{ fontSize: 12, color: "#16a34a", marginTop: 6, fontWeight: 600 }}>
+                      {form.lineItemIds.length} item{form.lineItemIds.length > 1 ? "s" : ""} selected
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Description — optional */}
+              <div>
+                <label style={lbl}>Description <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
                 <textarea
-                  style={{ ...inp, minHeight: 80, resize: "vertical" }}
-                  placeholder="e.g. Setup and manage catering for 200 guests on Dec 12"
+                  style={{ ...inp, minHeight: 70, resize: "vertical" }}
+                  placeholder="Additional notes or instructions for this work order..."
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  required
                 />
               </div>
 
+              {/* Dates */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={lbl}>Start Date</label>
@@ -271,28 +385,14 @@ const AdminWorkOrderKanban = () => {
                 </div>
               </div>
 
+              {/* Event ID */}
               <div>
-                <label style={lbl}>Link to Purchase Order (optional)</label>
-                <select style={inp} value={form.purchaseOrderId} onChange={(e) => setForm((f) => ({ ...f, purchaseOrderId: e.target.value }))}>
-                  <option value="">— None —</option>
-                  {pos.map((po) => (
-                    <option key={po.id} value={po.id}>
-                      {po.poNumber ?? po.id.slice(0, 8)} — ₹{Number(po.totalAmount ?? 0).toLocaleString('en-IN')} ({po.status})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={lbl}>Event ID (optional)</label>
+                <label style={lbl}>Event ID <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
                 <input style={inp} type="text" placeholder="e.g. EVT-2026-001" value={form.eventId} onChange={(e) => setForm((f) => ({ ...f, eventId: e.target.value }))} />
               </div>
 
               <div style={{ display: "flex", gap: 12, justifyContent: "flex-end", marginTop: 8 }}>
-                <button type="button" className="admin-btn admin-btn--outline"
-                  onClick={() => { setShowModal(false); setForm(EMPTY_FORM); setFormError(null); }}>
-                  Cancel
-                </button>
+                <button type="button" className="admin-btn admin-btn--outline" onClick={closeModal}>Cancel</button>
                 <button type="submit" className="admin-btn admin-btn--primary" disabled={submitting}>
                   {submitting ? "Creating..." : "Create Work Order"}
                 </button>

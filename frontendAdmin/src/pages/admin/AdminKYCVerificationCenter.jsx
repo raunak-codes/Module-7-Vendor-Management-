@@ -51,6 +51,31 @@ const AdminKYCVerificationCenter = () => {
       .finally(() => setLoading(false));
   }, [vendorId]);
 
+  const handleDocStatus = async (docId, status) => {
+    try {
+      const token = localStorage.getItem("adminToken");
+      const res = await fetch(
+        `http://localhost:5000/api/v1/vendors/${vendorId}/kyc/${docId}/status`,
+        {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status }),
+        }
+      );
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message ?? `Failed to update document status`);
+      }
+      // Refresh KYC docs in state
+      setVendor(prev => ({
+        ...prev,
+        kycDocuments: prev.kycDocuments.map(d => d.id === docId ? { ...d, status } : d),
+      }));
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const handleDecision = async (status) => {
     try {
       const token = localStorage.getItem("adminToken");
@@ -59,7 +84,10 @@ const AdminKYCVerificationCenter = () => {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error(`Failed to ${status} vendor`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message ?? `Failed to ${status} vendor`);
+      }
       navigate(`/admin/vendors/${vendorId}`);
     } catch (err) {
       alert(err.message);
@@ -94,28 +122,93 @@ const AdminKYCVerificationCenter = () => {
 
       <div className="admin-kyc__grid">
         <div className="admin-card admin-kyc__doc-panel">
-          <div className="admin-kyc__tabs">
-            {docs.map((doc) => (
-              <button
-                key={doc.id}
-                className={`admin-kyc__tab${activeTab === doc.id ? " admin-kyc__tab--active" : ""}`}
-                onClick={() => setActiveTab(doc.id)}
-              >
-                {doc.documentType}
-              </button>
-            ))}
-            {docs.length === 0 && <span style={{ padding: 12, color: '#6b7280' }}>No documents uploaded.</span>}
+          {/* Left: document list */}
+          <div className="admin-kyc__doc-list">
+            <p className="admin-kyc__doc-list-heading">Submitted Documents</p>
+            {docs.length === 0 && (
+              <p className="admin-kyc__doc-list-empty">No documents uploaded yet.</p>
+            )}
+            {docs.map((doc, idx) => {
+              const isActive = activeTab === doc.id;
+              const statusColor =
+                doc.status === "VERIFIED"  ? "#16a34a" :
+                doc.status === "REJECTED"  ? "#dc2626" :
+                doc.status === "EXPIRED"   ? "#9ca3af" : "#d97706";
+              return (
+                <button
+                  key={doc.id}
+                  className={`admin-kyc__doc-item${isActive ? " admin-kyc__doc-item--active" : ""}`}
+                  onClick={() => setActiveTab(doc.id)}
+                >
+                  <div className="admin-kyc__doc-item-num">{idx + 1}</div>
+                  <div className="admin-kyc__doc-item-info">
+                    <span className="admin-kyc__doc-item-type">
+                      {doc.type?.replace(/_/g, " ")}
+                    </span>
+                    <span className="admin-kyc__doc-item-status" style={{ color: statusColor }}>
+                      {doc.status}
+                    </span>
+                  </div>
+                  {isActive && <div className="admin-kyc__doc-item-arrow">›</div>}
+                </button>
+              );
+            })}
           </div>
 
-          <div className="admin-kyc__doc-preview" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+          {/* Right: document preview */}
+          <div className="admin-kyc__doc-preview">
             {activeDoc ? (
-               activeDoc.documentUrl?.endsWith('.pdf') ? (
-                  <iframe src={activeDoc.downloadUrl} width="100%" height="500px" title={activeDoc.documentType} />
-               ) : (
-                  <img src={activeDoc.downloadUrl} alt={activeDoc.documentType} style={{ maxWidth: '100%', maxHeight: 500, objectFit: 'contain' }} />
-               )
+              <>
+                <div className="admin-kyc__doc-preview-header">
+                  <span className="admin-kyc__doc-preview-title">
+                    {activeDoc.type?.replace(/_/g, " ")}
+                  </span>
+                  <div className="admin-kyc__doc-preview-actions">
+                    {activeDoc.expiryDate && (
+                      <span className="admin-kyc__doc-preview-expiry">
+                        Expires: {new Date(activeDoc.expiryDate).toLocaleDateString()}
+                      </span>
+                    )}
+                    {activeDoc.status !== 'VERIFIED' && (
+                      <button
+                        className="admin-btn admin-btn--sm admin-btn--success"
+                        onClick={() => handleDocStatus(activeDoc.id, 'VERIFIED')}
+                      >
+                        ✓ Verify
+                      </button>
+                    )}
+                    {activeDoc.status !== 'REJECTED' && (
+                      <button
+                        className="admin-btn admin-btn--sm admin-btn--outline"
+                        onClick={() => handleDocStatus(activeDoc.id, 'REJECTED')}
+                      >
+                        ✗ Reject
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="admin-kyc__doc-preview-body">
+                  {activeDoc.documentUrl?.endsWith(".pdf") ? (
+                    <iframe
+                      src={activeDoc.downloadUrl}
+                      width="100%"
+                      height="500px"
+                      title={activeDoc.type}
+                    />
+                  ) : (
+                    <img
+                      src={activeDoc.downloadUrl}
+                      alt={activeDoc.documentType}
+                      style={{ maxWidth: "100%", maxHeight: 500, objectFit: "contain" }}
+                    />
+                  )}
+                </div>
+              </>
             ) : (
-               <p style={{ color: '#6b7280' }}>Select a document to preview.</p>
+              <div className="admin-kyc__doc-preview-empty">
+                <div className="admin-kyc__doc-preview-empty-icon">📄</div>
+                <p>Select a document from the list to preview it here.</p>
+              </div>
             )}
           </div>
         </div>
@@ -155,6 +248,7 @@ const AdminKYCVerificationCenter = () => {
             className="admin-btn admin-btn--outline"
             onClick={() => handleDecision("rejected")}
             disabled={vendor.status !== 'PENDING'}
+            title={vendor.status !== 'PENDING' ? `Cannot reject: vendor is already ${vendor.status}` : 'Reject this vendor'}
           >
             Reject Vendor
           </button>
@@ -162,6 +256,7 @@ const AdminKYCVerificationCenter = () => {
             className="admin-btn admin-btn--danger"
             onClick={() => handleDecision("approved")}
             disabled={vendor.status !== 'PENDING'}
+            title={vendor.status !== 'PENDING' ? `Cannot approve: vendor is already ${vendor.status}` : 'Approve this vendor'}
           >
             ✓ Approve Vendor
           </button>
